@@ -2,7 +2,10 @@ name = "inspiration-collector"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Pages配置
+# Pages项目配置
+pages_build_output_dir = "public"
+
+# Pages环境配置
 [env.production]
 name = "inspiration-collector"
 
@@ -32,15 +35,8 @@ name = "inspiration-collector"
 GEMINI_API_KEY = "" # 请在Cloudflare Pages项目设置中配置
 ENVIRONMENT = "development"
 
-# Workers配置
-[build]
-command = "npm run build"
-
-# 本地开发配置
-[dev]
-port = 3000
-local_protocol = "http"
-local = true
+# 注意：Pages项目不需要[build]和[dev]配置
+# 构建和部署由Cloudflare Pages自动处理
 
 # 注意：
 # 1. 此文件包含敏感信息，不应提交到Git

@@ -334,19 +334,27 @@ curl -H 'Content-Type: application/json' \
 
 ### 常见问题
 
-1. **构建失败**
+1. **部署错误："If are uploading a directory of assets"**
+   - **问题原因**：项目被误认为是Worker项目而不是Pages项目
+   - **解决方案**：
+     - 确保项目是通过GitHub连接到Cloudflare Pages创建的
+     - 检查项目类型：在Cloudflare Dashboard中，项目应该显示在 "Pages" 标签下，而不是 "Workers" 标签下
+     - 如果项目在Workers下，请删除并重新创建为Pages项目
+     - 确保 `wrangler.toml` 文件包含 `pages_build_output_dir = "public"` 配置
+
+2. **构建失败**
    - 检查 `package.json` 中的构建脚本
    - 确认所有依赖都已正确安装
 
-2. **API调用失败**
+3. **API调用失败**
    - 验证Gemini API密钥是否正确设置
    - 检查API配额是否充足
 
-3. **数据库连接错误**
+4. **数据库连接错误**
    - 确认D1数据库绑定配置正确
    - 检查数据库是否已正确初始化
 
-4. **KV存储问题**
+5. **KV存储问题**
    - 验证KV命名空间绑定配置
    - 确认命名空间ID正确
 
