@@ -15,6 +15,7 @@ pnpm-debug.log*
 # Cloudflare
 .wrangler/
 wrangler.toml.backup
+wrangler.toml
 
 # 构建输出
 dist/
