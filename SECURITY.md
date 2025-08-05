@@ -24,81 +24,126 @@
 1. **本地开发**: 使用 `wrangler.toml` + `.env`
 2. **生产部署**: 使用 Cloudflare Dashboard 配置
 
-## 🛠️ 本地开发配置步骤
+## 🛠️ 通过Cloudflare Dashboard配置步骤
 
-### 1. 复制配置模板
-```bash
-# 复制Wrangler配置模板
-cp wrangler.toml.example wrangler.toml
+### 1. 创建D1数据库
 
-# 复制环境变量模板
-cp .env.example .env
+1. **进入D1数据库管理页面**
+   - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
+   - 点击左侧菜单的 **"Workers & Pages"**
+   - 点击顶部的 **"D1 SQL Database"** 标签
+   - 点击 **"Create database"** 按钮
+
+2. **配置数据库**
+   - **Database name**: 输入 `illuminateur-db`
+   - **Location**: 选择离你最近的区域（如 Asia Pacific）
+   - 点击 **"Create"** 按钮
+
+3. **初始化数据库结构**
+   - 数据库创建完成后，点击进入数据库详情页
+   - 点击 **"Console"** 标签
+   - 将以下SQL代码复制粘贴到控制台中：
+
+```sql
+CREATE TABLE IF NOT EXISTS content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    content TEXT NOT NULL,
+    summary TEXT,
+    keywords TEXT,
+    tags TEXT,
+    category TEXT,
+    sentiment TEXT,
+    importance_score INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    total_content INTEGER DEFAULT 0,
+    total_tags INTEGER DEFAULT 0,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO stats (total_content, total_tags) VALUES (0, 0);
 ```
 
-### 2. 创建Cloudflare资源
-```bash
-# 登录Cloudflare
-npx wrangler login
+   - 点击 **"Execute"** 按钮执行SQL
+   - 确认看到 "Success" 提示
 
-# 创建D1数据库
-npx wrangler d1 create illuminateur-db
-# 记录返回的database_id
+### 2. 创建KV命名空间
 
-# 创建KV命名空间
-npx wrangler kv:namespace create "CACHE"
-npx wrangler kv:namespace create "CACHE" --preview
-# 记录返回的namespace_id和preview_id
-```
+1. **进入KV存储管理页面**
+   - 在Cloudflare Dashboard中，点击左侧菜单的 **"Workers & Pages"**
+   - 点击顶部的 **"KV"** 标签
+   - 点击 **"Create a namespace"** 按钮
 
-### 3. 配置wrangler.toml
-编辑 `wrangler.toml` 文件，填入实际的ID：
+2. **创建命名空间**
+   - **Namespace Name**: 输入 `CACHE`
+   - 点击 **"Add"** 按钮
 
-```toml
-# 取消注释并填入实际ID
-[[d1_databases]]
-binding = "DB"
-database_name = "illuminateur-db"
-database_id = "你的实际数据库ID"
+### 3. 配置Pages项目绑定
 
-[[kv_namespaces]]
-binding = "CACHE"
-id = "你的实际KV命名空间ID"
-preview_id = "你的实际KV预览ID"
-```
+1. **进入Pages项目设置**
+   - 在Cloudflare Dashboard中，点击左侧菜单的 **"Workers & Pages"**
+   - 点击顶部的 **"Pages"** 标签
+   - 找到你的项目并点击进入
+   - 点击 **"Settings"** 标签
 
-### 4. 配置环境变量
-编辑 `.env` 文件：
-```env
-GEMINI_API_KEY=你的Gemini API密钥
-ENVIRONMENT=development
-```
+2. **配置D1数据库绑定**
+   - 点击左侧菜单的 **"Functions"**
+   - 滚动到 **"D1 database bindings"** 部分
+   - 点击 **"Add binding"**
+   - 填写：
+     - **Variable name**: `DB`
+     - **D1 database**: 选择 `illuminateur-db`
+   - 点击 **"Save"**
 
-### 5. 初始化数据库
-```bash
-# 运行数据库初始化脚本
-npx wrangler d1 execute illuminateur-db --file=./schema/init.sql
-```
+3. **配置KV存储绑定**
+   - 在同一页面的 **"KV namespace bindings"** 部分
+   - 点击 **"Add binding"**
+   - 填写：
+     - **Variable name**: `CACHE`
+     - **KV namespace**: 选择 `CACHE`
+   - 点击 **"Save"**
+
+4. **配置环境变量**
+   - 点击左侧菜单的 **"Environment variables"**
+   - 点击 **"Add variable"**
+   - 添加以下变量：
+     - **GEMINI_API_KEY**: 你的Gemini API密钥
+     - **ENVIRONMENT**: `production`
 
 ## 🚀 生产环境配置
 
-### Cloudflare Pages配置
+生产环境的配置已在上述步骤3中完成。确保以下配置正确：
 
-1. **环境变量配置**
-   - 进入 Cloudflare Pages 项目设置
-   - 添加环境变量：
-     - `GEMINI_API_KEY`: 你的Gemini API密钥
-     - `ENVIRONMENT`: `production`
+### 环境变量配置
+- `GEMINI_API_KEY`: 你的Gemini API密钥
+- `ENVIRONMENT`: `production`
 
-2. **D1数据库绑定**
-   - 进入 Functions 设置
-   - 添加 D1 database binding：
-     - Variable name: `DB`
-     - Database: 选择你创建的数据库
+### D1数据库绑定
+- **变量名**: `DB`
+- **数据库**: `illuminateur-db`
 
-3. **KV存储绑定**
-   - 添加 KV namespace binding：
-     - Variable name: `CACHE`
-     - Namespace: 选择你创建的命名空间
+### KV命名空间绑定
+- **变量名**: `CACHE`
+- **命名空间**: `CACHE`
+
+### 验证配置
+1. 在Pages项目的 **Settings** → **Functions** 页面确认：
+   - D1数据库绑定显示为 `DB` → `illuminateur-db`
+   - KV命名空间绑定显示为 `CACHE` → `CACHE`
+2. 在 **Environment variables** 页面确认环境变量已正确设置
+3. 重新部署项目以应用新配置
 
 ## 🔍 安全检查清单
 
@@ -114,33 +159,36 @@ npx wrangler d1 execute illuminateur-db --file=./schema/init.sql
 - [ ] KV命名空间绑定已设置
 - [ ] 数据库已初始化
 
-## 🚨 如果敏感信息已经被提交
+## 🚨 紧急处理：如果敏感信息已提交
 
-如果你不小心将包含敏感信息的文件提交到了Git，需要立即采取以下措施：
+如果不小心将敏感信息提交到Git仓库：
 
-### 1. 立即更换所有敏感信息
-```bash
-# 重新生成API密钥
-# 删除并重新创建数据库和KV命名空间
-npx wrangler d1 delete illuminateur-db
-npx wrangler d1 create illuminateur-db
-```
+### 1. 立即更改密钥和资源
+- **重新生成Gemini API密钥**：
+  - 访问 [Google AI Studio](https://aistudio.google.com/app/apikey)
+  - 删除旧的API密钥
+  - 创建新的API密钥
+  - 在Cloudflare Pages中更新环境变量
 
-### 2. 清理Git历史
-```bash
-# 从Git历史中完全删除敏感文件
-git filter-branch --force --index-filter \
-'git rm --cached --ignore-unmatch wrangler.toml' \
---prune-empty --tag-name-filter cat -- --all
+- **重新创建Cloudflare资源**（如果ID已暴露）：
+  - 在Cloudflare Dashboard中删除旧的D1数据库和KV命名空间
+  - 按照上述步骤重新创建资源
+  - 重新配置绑定
 
-# 强制推送（谨慎操作）
-git push origin --force --all
-```
+### 2. 清理仓库
+- **删除敏感文件**：
+  - 在GitHub网页界面中删除 `wrangler.toml` 和 `.env` 文件
+  - 或者在本地删除后提交：`git rm wrangler.toml .env && git commit -m "Remove sensitive files"`
 
-### 3. 通知团队成员
-- 通知所有有权限的团队成员
-- 要求他们重新克隆仓库
-- 更新所有相关的配置
+- **联系GitHub支持**（如果需要彻底清理历史）：
+  - 访问 [GitHub Support](https://support.github.com/)
+  - 请求帮助清理敏感信息的提交历史
+
+### 3. 重新配置安全设置
+- 确认 `.gitignore` 文件包含 `wrangler.toml` 和 `.env*`
+- 重新按照上述UI配置步骤设置Cloudflare资源
+- 验证敏感文件不再被Git跟踪
+- 在Cloudflare Pages中更新所有环境变量和绑定
 
 ## 📞 支持
 
