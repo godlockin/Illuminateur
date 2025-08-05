@@ -1,0 +1,242 @@
+### 灵感收集器 API 测试文件
+### 使用 REST Client 扩展运行这些测试
+
+# 设置变量
+@baseUrl = {{baseUrl}}
+@contentType = application/json
+
+### 健康检查
+GET {{baseUrl}}/api/health
+
+### 获取版本信息
+GET {{baseUrl}}/api/version
+
+### 获取统计数据
+GET {{baseUrl}}/api/stats
+
+### 获取内容列表（默认）
+GET {{baseUrl}}/api/contents
+
+### 获取内容列表（带分页）
+GET {{baseUrl}}/api/contents?page=1&limit=10
+
+### 获取内容列表（按类型筛选）
+GET {{baseUrl}}/api/contents?type=url
+
+### 获取内容列表（按标签筛选）
+GET {{baseUrl}}/api/contents?tags=技术,学习
+
+### 搜索内容
+GET {{baseUrl}}/api/search?q=JavaScript
+
+### 高级搜索
+GET {{baseUrl}}/api/search?q=React&type=url&tags=前端&sentiment=positive
+
+### 获取标签列表
+GET {{baseUrl}}/api/tags
+
+### 获取热门标签
+GET {{baseUrl}}/api/tags?popular=true&limit=20
+
+### 提交文本内容
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "今天学习了 React Hooks，感觉非常有用。useState 和 useEffect 是最常用的两个 Hook，可以让函数组件拥有状态管理和生命周期的能力。",
+  "type": "text",
+  "autoTag": true,
+  "deepAnalysis": false
+}
+
+### 提交 URL 内容
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "https://react.dev/learn/state-a-components-memory",
+  "type": "url",
+  "autoTag": true,
+  "deepAnalysis": true
+}
+
+### 提交邮件内容
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "主题：关于新项目的想法\n\n我有一个关于构建知识管理系统的想法。这个系统应该能够：\n1. 自动收集和整理信息\n2. 使用AI进行内容分析\n3. 提供智能搜索功能\n\n期待与团队讨论这个想法。",
+  "type": "email",
+  "autoTag": true,
+  "deepAnalysis": true
+}
+
+### 提交长文本内容（测试深度分析）
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "人工智能的发展正在改变我们的工作方式。从自动化简单任务到协助复杂决策，AI技术正在各个行业中发挥重要作用。然而，我们也需要考虑AI带来的挑战，包括就业影响、隐私问题和伦理考量。作为技术从业者，我们有责任确保AI技术的发展是负责任和可持续的。这需要我们在技术创新和社会责任之间找到平衡。",
+  "type": "text",
+  "autoTag": true,
+  "deepAnalysis": true
+}
+
+### 获取特定内容详情
+GET {{baseUrl}}/api/content/1
+
+### 更新内容标签
+PUT {{baseUrl}}/api/content/1/tags
+Content-Type: {{contentType}}
+
+{
+  "tags": ["AI", "技术", "思考", "未来"]
+}
+
+### 删除内容
+DELETE {{baseUrl}}/api/content/1
+
+### 批量操作 - 删除多个内容
+POST {{baseUrl}}/api/contents/batch
+Content-Type: {{contentType}}
+
+{
+  "action": "delete",
+  "ids": [1, 2, 3]
+}
+
+### 批量操作 - 添加标签
+POST {{baseUrl}}/api/contents/batch
+Content-Type: {{contentType}}
+
+{
+  "action": "addTags",
+  "ids": [4, 5, 6],
+  "tags": ["重要", "待处理"]
+}
+
+### 导出数据（JSON格式）
+GET {{baseUrl}}/api/export?format=json
+
+### 导出数据（Markdown格式）
+GET {{baseUrl}}/api/export?format=markdown
+
+### 导出特定标签的数据
+GET {{baseUrl}}/api/export?format=json&tags=技术,学习
+
+### 获取用户设置
+GET {{baseUrl}}/api/settings
+
+### 更新用户设置
+PUT {{baseUrl}}/api/settings
+Content-Type: {{contentType}}
+
+{
+  "autoTag": true,
+  "deepAnalysis": false,
+  "theme": "dark",
+  "language": "zh-CN",
+  "notifications": {
+    "email": false,
+    "browser": true
+  },
+  "privacy": {
+    "shareAnalytics": false,
+    "dataRetention": 365
+  }
+}
+
+### 分析特定内容
+POST {{baseUrl}}/api/analyze
+Content-Type: {{contentType}}
+
+{
+  "content": "这是一篇关于机器学习在医疗诊断中应用的研究论文。研究表明，深度学习算法在图像识别方面的准确率已经超过了人类专家。",
+  "type": "text",
+  "options": {
+    "includeSentiment": true,
+    "includeKeywords": true,
+    "includeSummary": true,
+    "includeCategories": true
+  }
+}
+
+### 获取内容推荐
+GET {{baseUrl}}/api/recommendations?contentId=1&limit=5
+
+### 获取趋势分析
+GET {{baseUrl}}/api/trends?period=week
+
+### 获取情感分析统计
+GET {{baseUrl}}/api/analytics/sentiment?period=month
+
+### 获取标签使用统计
+GET {{baseUrl}}/api/analytics/tags?period=month&limit=20
+
+### 测试错误处理 - 无效内容
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "",
+  "type": "invalid_type"
+}
+
+### 测试错误处理 - 缺少必需字段
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "type": "text"
+}
+
+### 测试错误处理 - 无效的内容ID
+GET {{baseUrl}}/api/content/999999
+
+### 测试错误处理 - 无效的API端点
+GET {{baseUrl}}/api/invalid-endpoint
+
+### WebSocket 连接测试（如果支持）
+# WebSocket URL: ws://localhost:3000/ws
+# 发送消息: {"type": "ping"}
+# 期望响应: {"type": "pong"}
+
+### 性能测试 - 大量数据查询
+GET {{baseUrl}}/api/contents?limit=100&page=1
+
+### 性能测试 - 复杂搜索查询
+GET {{baseUrl}}/api/search?q=JavaScript React Vue&type=url&sentiment=positive&importance=high&dateFrom=2024-01-01&dateTo=2024-12-31
+
+### 缓存测试 - 重复请求
+GET {{baseUrl}}/api/stats
+###
+GET {{baseUrl}}/api/stats
+###
+GET {{baseUrl}}/api/stats
+
+### 并发测试 - 同时提交多个内容
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "并发测试内容 1",
+  "type": "text"
+}
+
+###
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "并发测试内容 2",
+  "type": "text"
+}
+
+###
+POST {{baseUrl}}/api/content
+Content-Type: {{contentType}}
+
+{
+  "content": "并发测试内容 3",
+  "type": "text"
+}

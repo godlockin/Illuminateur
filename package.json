@@ -1,0 +1,24 @@
+{
+  "name": "inspiration-collector",
+  "version": "0.1.0",
+  "description": "智能灵感收集与知识沉淀平台",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "build": "echo 'Building static files...'",
+    "preview": "wrangler pages dev public --port 3000"
+  },
+  "keywords": [
+    "inspiration",
+    "knowledge-management",
+    "ai",
+    "cloudflare",
+    "gemini"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {}
+}

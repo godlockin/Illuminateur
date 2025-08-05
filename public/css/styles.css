@@ -1,0 +1,300 @@
+/* 灵感收集器 - 自定义样式 */
+
+/* 基础样式重置 */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #374151;
+}
+
+/* 输入类型按钮样式 */
+.input-type-btn {
+    @apply px-4 py-2 text-sm border border-gray-300 rounded-lg transition-all duration-200;
+}
+
+.input-type-btn:hover {
+    @apply bg-gray-50 border-gray-400;
+}
+
+.input-type-btn.active {
+    @apply bg-blue-500 text-white border-blue-500;
+}
+
+/* 内容卡片样式 */
+.content-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200;
+}
+
+.content-card:hover {
+    @apply border-gray-300;
+}
+
+/* 标签样式 */
+.tag {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.tag-blue {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.tag-purple {
+    @apply bg-purple-100 text-purple-800;
+}
+
+.tag-yellow {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.tag-green {
+    @apply bg-green-100 text-green-800;
+}
+
+.tag-red {
+    @apply bg-red-100 text-red-800;
+}
+
+.tag-gray {
+    @apply bg-gray-100 text-gray-800;
+}
+
+.tag-pink {
+    @apply bg-pink-100 text-pink-800;
+}
+
+/* 情感分析指示器 */
+.sentiment-indicator {
+    @apply w-3 h-3 rounded-full;
+}
+
+.sentiment-positive {
+    @apply bg-green-400;
+}
+
+.sentiment-neutral {
+    @apply bg-yellow-400;
+}
+
+.sentiment-negative {
+    @apply bg-red-400;
+}
+
+/* 重要性评分星星 */
+.importance-stars {
+    @apply flex items-center space-x-1;
+}
+
+.star {
+    @apply w-4 h-4 text-yellow-400;
+}
+
+.star.filled {
+    @apply text-yellow-500;
+}
+
+/* 加载动画 */
+.loading-dots {
+    @apply inline-flex space-x-1;
+}
+
+.loading-dots > div {
+    @apply w-2 h-2 bg-blue-500 rounded-full animate-pulse;
+}
+
+.loading-dots > div:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.loading-dots > div:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+/* Toast通知样式 */
+.toast {
+    @apply bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm transform transition-all duration-300;
+}
+
+.toast.success {
+    @apply border-green-200 bg-green-50;
+}
+
+.toast.error {
+    @apply border-red-200 bg-red-50;
+}
+
+.toast.warning {
+    @apply border-yellow-200 bg-yellow-50;
+}
+
+.toast.info {
+    @apply border-blue-200 bg-blue-50;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .content-card {
+        @apply p-3;
+    }
+    
+    .input-type-btn {
+        @apply px-3 py-1 text-xs;
+    }
+    
+    #contentInput {
+        @apply text-sm;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    body {
+        @apply bg-gray-900 text-gray-100;
+    }
+    
+    .content-card {
+        @apply bg-gray-800 border-gray-700;
+    }
+    
+    .content-card:hover {
+        @apply border-gray-600;
+    }
+    
+    .input-type-btn {
+        @apply border-gray-600 text-gray-300;
+    }
+    
+    .input-type-btn:hover {
+        @apply bg-gray-700 border-gray-500;
+    }
+    
+    #contentInput {
+        @apply bg-gray-800 border-gray-600 text-gray-100;
+    }
+    
+    #contentInput:focus {
+        @apply border-blue-400;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* 特殊效果 */
+.glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 内容类型图标 */
+.content-type-icon {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm;
+}
+
+.content-type-text {
+    @apply bg-blue-100 text-blue-600;
+}
+
+.content-type-url {
+    @apply bg-green-100 text-green-600;
+}
+
+.content-type-email {
+    @apply bg-purple-100 text-purple-600;
+}
+
+.content-type-file {
+    @apply bg-orange-100 text-orange-600;
+}
+
+/* 统计图表样式 */
+.chart-container {
+    @apply relative h-64 w-full;
+}
+
+.chart-bar {
+    @apply bg-blue-500 rounded-t transition-all duration-300;
+}
+
+.chart-bar:hover {
+    @apply bg-blue-600;
+}
+
+/* 搜索高亮 */
+.search-highlight {
+    @apply bg-yellow-200 px-1 rounded;
+}
+
+/* 空状态样式 */
+.empty-state {
+    @apply text-center py-12 text-gray-500;
+}
+
+.empty-state-icon {
+    @apply text-6xl mb-4 opacity-50;
+}
+
+/* 按钮悬停效果 */
+.btn-hover-lift {
+    @apply transition-transform duration-200;
+}
+
+.btn-hover-lift:hover {
+    @apply transform -translate-y-1;
+}
