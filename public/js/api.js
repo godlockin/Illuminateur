@@ -4,17 +4,48 @@ class ApiClient {
     constructor() {
         this.baseUrl = '/api';
         this.timeout = 30000; // 30秒超时
+        this.authToken = localStorage.getItem('auth_token') || null;
+        this.isAuthenticated = !!this.authToken;
+    }
+
+    // 设置认证令牌
+    setAuthToken(token) {
+        this.authToken = token;
+        this.isAuthenticated = !!token;
+        if (token) {
+            localStorage.setItem('auth_token', token);
+        } else {
+            localStorage.removeItem('auth_token');
+        }
+    }
+
+    // 获取认证令牌
+    getAuthToken() {
+        return this.authToken;
+    }
+
+    // 登出
+    logout() {
+        this.setAuthToken(null);
+        window.location.reload();
     }
 
     // 通用请求方法
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        // 添加认证头
+        if (this.authToken) {
+            headers['Authorization'] = `Bearer ${this.authToken}`;
+        }
+        
         const config = {
             timeout: this.timeout,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
+            headers,
             ...options
         };
 
@@ -30,6 +61,11 @@ class ApiClient {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
+                // 处理认证错误
+                if (response.status === 401) {
+                    this.logout();
+                    throw new Error('认证失败，请重新登录');
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
@@ -167,9 +203,34 @@ class ApiClient {
         return this.get('/health');
     }
 
-    // 获取API版本信息
+    // 获取版本信息
     async getVersion() {
         return this.get('/version');
+    }
+
+    // 验证登录密钥
+    async validateLogin(loginKey) {
+        try {
+            // 临时设置认证令牌进行验证
+            const tempHeaders = {
+                'Authorization': `Bearer ${loginKey}`,
+                'Content-Type': 'application/json'
+            };
+            
+            const response = await fetch(`${this.baseUrl}/health`, {
+                method: 'GET',
+                headers: tempHeaders
+            });
+            
+            if (response.ok) {
+                this.setAuthToken(loginKey);
+                return { success: true };
+            } else {
+                return { success: false, error: '登录密钥错误' };
+            }
+        } catch (error) {
+            return { success: false, error: '验证失败: ' + error.message };
+        }
     }
 }
 

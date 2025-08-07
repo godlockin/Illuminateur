@@ -12,7 +12,13 @@ class InspirationCollector {
         this.init();
     }
 
-    init() {
+    async init() {
+        // 检查认证状态
+        if (!window.apiClient.isAuthenticated) {
+            this.showLoginModal();
+            return;
+        }
+        
         this.bindEvents();
         this.loadStats();
         this.loadContents();
@@ -71,6 +77,14 @@ class InspirationCollector {
         document.getElementById('settingsBtn').addEventListener('click', () => {
             this.showSettings();
         });
+        
+        // 登出按钮（如果存在）
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
     }
 
     // 提交内容
@@ -592,6 +606,130 @@ class InspirationCollector {
 
     showSettings() {
         this.showToast('设置功能开发中', 'info');
+    }
+    
+    // 显示登录模态框
+    showLoginModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <div class="text-center mb-6">
+                    <div class="text-4xl mb-4">🔐</div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">登录验证</h2>
+                    <p class="text-gray-600">请输入登录密钥以访问系统</p>
+                </div>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="loginKey" class="block text-sm font-medium text-gray-700 mb-2">
+                            登录密钥
+                        </label>
+                        <input 
+                            type="password" 
+                            id="loginKey" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="请输入登录密钥"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="text-sm text-gray-500">
+                        💡 提示：登录密钥在环境变量 LOGIN_KEY 中配置
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                    >
+                        登录
+                    </button>
+                </form>
+                
+                <div id="loginError" class="mt-4 text-red-600 text-sm hidden"></div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 绑定登录表单事件
+        const loginForm = modal.querySelector('#loginForm');
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleLogin(modal);
+        });
+        
+        // 聚焦到输入框
+        modal.querySelector('#loginKey').focus();
+    }
+    
+    // 处理登录
+    async handleLogin(modal) {
+        const loginKey = modal.querySelector('#loginKey').value.trim();
+        const errorDiv = modal.querySelector('#loginError');
+        const submitBtn = modal.querySelector('button[type="submit"]');
+        
+        if (!loginKey) {
+            this.showLoginError(errorDiv, '请输入登录密钥');
+            return;
+        }
+        
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.textContent = '验证中...';
+        errorDiv.classList.add('hidden');
+        
+        try {
+            const result = await window.apiClient.validateLogin(loginKey);
+            
+            if (result.success) {
+                // 登录成功，移除模态框并初始化应用
+                document.body.removeChild(modal);
+                this.showToast('登录成功！', 'success');
+                
+                // 重新初始化应用
+                this.bindEvents();
+                this.loadStats();
+                this.loadContents();
+                this.setupAutoSave();
+                
+                // 添加登出按钮到头部
+                this.addLogoutButton();
+            } else {
+                this.showLoginError(errorDiv, result.error || '登录失败');
+            }
+        } catch (error) {
+            this.showLoginError(errorDiv, '网络错误，请稍后重试');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '登录';
+        }
+    }
+    
+    // 显示登录错误
+    showLoginError(errorDiv, message) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+    
+    // 添加登出按钮
+    addLogoutButton() {
+        const headerButtons = document.querySelector('header .flex.items-center.space-x-4');
+        if (headerButtons && !document.getElementById('logoutBtn')) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.id = 'logoutBtn';
+            logoutBtn.className = 'text-gray-600 hover:text-red-600 transition-colors';
+            logoutBtn.innerHTML = '🚪 登出';
+            logoutBtn.addEventListener('click', () => this.logout());
+            headerButtons.appendChild(logoutBtn);
+        }
+    }
+    
+    // 登出
+    logout() {
+        if (confirm('确定要登出吗？')) {
+            window.apiClient.logout();
+        }
     }
 
     editContent(id) {

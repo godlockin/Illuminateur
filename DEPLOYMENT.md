@@ -172,6 +172,17 @@ INSERT OR IGNORE INTO stats (total_content, total_tags) VALUES (0, 0);
 - Environment: 选择 **"Production"**
 - 点击 **"Save"**
 
+**变量3：LOGIN_KEY**
+- Variable name: `LOGIN_KEY`
+- Value: `你的登录密钥`（建议使用强密码，如：`MySecureKey2024!`）
+- Environment: 选择 **"Production"**
+- 点击 **"Save"**
+
+**重要安全提示：**
+- LOGIN_KEY 是访问系统的唯一凭证，请设置一个强密码
+- 不要在代码中硬编码这个密钥
+- 不要将密钥分享给未授权人员
+
 #### 4.3 配置函数绑定
 
 1. 在Settings页面的左侧菜单中，点击 **"Functions"**
@@ -194,7 +205,7 @@ INSERT OR IGNORE INTO stats (total_content, total_tags) VALUES (0, 0);
 #### 4.4 验证配置
 
 配置完成后，你应该能在Functions页面看到：
-- **Environment variables**: GEMINI_API_KEY, ENVIRONMENT
+- **Environment variables**: GEMINI_API_KEY, ENVIRONMENT, LOGIN_KEY
 - **D1 database bindings**: DB → illuminateur-db
 - **KV namespace bindings**: CACHE → CACHE
 

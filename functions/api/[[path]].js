@@ -44,6 +44,14 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Route not found' }, 404);
     }
     
+    // 认证检查（除了健康检查和版本接口）
+    if (!path.includes('/health') && !path.includes('/version')) {
+      const authResult = await checkAuthentication(request, env);
+      if (!authResult.success) {
+        return jsonResponse({ error: authResult.error }, 401);
+      }
+    }
+    
     // 执行处理器
     const result = await handler(request, env, context);
     return result;
@@ -676,17 +684,187 @@ function getCorsHeaders() {
   };
 }
 
+// 认证检查函数
+async function checkAuthentication(request, env) {
+  try {
+    // 检查是否配置了登录密钥
+    if (!env.LOGIN_KEY) {
+      return { success: false, error: '系统未配置登录密钥' };
+    }
+    
+    // 从请求头获取认证信息
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) {
+      return { success: false, error: '缺少认证信息' };
+    }
+    
+    // 支持 Bearer token 格式
+    const token = authHeader.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    // 验证密钥
+    if (token !== env.LOGIN_KEY) {
+      return { success: false, error: '认证失败，密钥错误' };
+    }
+    
+    return { success: true };
+    
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { success: false, error: '认证过程出错' };
+  }
+}
+
 // 其他处理器的占位实现
 async function handleGetContent(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const id = pathParts[pathParts.length - 1];
+    
+    if (!id) {
+      return jsonResponse({ error: '缺少内容ID' }, 400);
+    }
+    
+    const result = await env.DB.prepare(
+      'SELECT * FROM contents WHERE id = ?'
+    ).bind(id).first();
+    
+    if (!result) {
+      return jsonResponse({ error: '内容不存在' }, 404);
+    }
+    
+    // 更新最后访问时间
+    await env.DB.prepare(
+      'UPDATE contents SET last_accessed = ? WHERE id = ?'
+    ).bind(new Date().toISOString(), id).run();
+    
+    // 解析JSON字段
+    const content = {
+      ...result,
+      keywords: result.keywords ? JSON.parse(result.keywords) : [],
+      tags: result.tags ? JSON.parse(result.tags) : [],
+      source_info: result.source_info ? JSON.parse(result.source_info) : null
+    };
+    
+    return jsonResponse({
+      success: true,
+      data: content
+    });
+    
+  } catch (error) {
+    console.error('Get content error:', error);
+    return jsonResponse({ error: '获取内容失败: ' + error.message }, 500);
+  }
 }
 
 async function handleUpdateContent(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const id = pathParts[pathParts.length - 1];
+    
+    if (!id) {
+      return jsonResponse({ error: '缺少内容ID' }, 400);
+    }
+    
+    const data = await request.json();
+    const { summary, tags, category, importance_score } = data;
+    
+    // 检查内容是否存在
+    const existing = await env.DB.prepare(
+      'SELECT id FROM contents WHERE id = ?'
+    ).bind(id).first();
+    
+    if (!existing) {
+      return jsonResponse({ error: '内容不存在' }, 404);
+    }
+    
+    // 构建更新字段
+    const updates = [];
+    const values = [];
+    
+    if (summary !== undefined) {
+      updates.push('summary = ?');
+      values.push(summary);
+    }
+    
+    if (tags !== undefined) {
+      updates.push('tags = ?');
+      values.push(JSON.stringify(tags));
+    }
+    
+    if (category !== undefined) {
+      updates.push('category = ?');
+      values.push(category);
+    }
+    
+    if (importance_score !== undefined) {
+      updates.push('importance_score = ?');
+      values.push(importance_score);
+    }
+    
+    if (updates.length === 0) {
+      return jsonResponse({ error: '没有提供要更新的字段' }, 400);
+    }
+    
+    updates.push('updated_at = ?');
+    values.push(new Date().toISOString());
+    values.push(id);
+    
+    const query = `UPDATE contents SET ${updates.join(', ')} WHERE id = ?`;
+    await env.DB.prepare(query).bind(...values).run();
+    
+    // 如果更新了标签，更新标签统计
+    if (tags !== undefined) {
+      await updateTags(tags, env.DB);
+    }
+    
+    return jsonResponse({
+      success: true,
+      message: '内容更新成功'
+    });
+    
+  } catch (error) {
+    console.error('Update content error:', error);
+    return jsonResponse({ error: '更新内容失败: ' + error.message }, 500);
+  }
 }
 
 async function handleDeleteContent(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const id = pathParts[pathParts.length - 1];
+    
+    if (!id) {
+      return jsonResponse({ error: '缺少内容ID' }, 400);
+    }
+    
+    // 检查内容是否存在
+    const existing = await env.DB.prepare(
+      'SELECT id FROM contents WHERE id = ?'
+    ).bind(id).first();
+    
+    if (!existing) {
+      return jsonResponse({ error: '内容不存在' }, 404);
+    }
+    
+    // 删除内容
+    await env.DB.prepare(
+      'DELETE FROM contents WHERE id = ?'
+    ).bind(id).run();
+    
+    return jsonResponse({
+      success: true,
+      message: '内容删除成功'
+    });
+    
+  } catch (error) {
+    console.error('Delete content error:', error);
+    return jsonResponse({ error: '删除内容失败: ' + error.message }, 500);
+  }
 }
 
 async function handleGetTags(request, env) {
@@ -702,15 +880,146 @@ async function handleGetTags(request, env) {
 }
 
 async function handleCreateTag(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const data = await request.json();
+    const { name, description } = data;
+    
+    if (!name || name.trim().length === 0) {
+      return jsonResponse({ error: '标签名称不能为空' }, 400);
+    }
+    
+    const tagName = name.trim();
+    const id = generateId();
+    
+    // 检查标签是否已存在
+    const existing = await env.DB.prepare(
+      'SELECT id FROM tags WHERE name = ?'
+    ).bind(tagName).first();
+    
+    if (existing) {
+      return jsonResponse({ error: '标签已存在' }, 409);
+    }
+    
+    // 创建新标签
+    await env.DB.prepare(
+      'INSERT INTO tags (id, name, description, count) VALUES (?, ?, ?, 0)'
+    ).bind(id, tagName, description || '').run();
+    
+    return jsonResponse({
+      success: true,
+      data: {
+        id,
+        name: tagName,
+        description: description || '',
+        count: 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('Create tag error:', error);
+    return jsonResponse({ error: '创建标签失败: ' + error.message }, 500);
+  }
 }
 
 async function handleSearch(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('q');
+    const category = url.searchParams.get('category');
+    const tags = url.searchParams.get('tags');
+    const limit = parseInt(url.searchParams.get('limit')) || 20;
+    const offset = parseInt(url.searchParams.get('offset')) || 0;
+    
+    if (!query && !category && !tags) {
+      return jsonResponse({ error: '请提供搜索条件' }, 400);
+    }
+    
+    let sqlQuery = 'SELECT * FROM contents WHERE 1=1';
+    const params = [];
+    
+    if (query) {
+      sqlQuery += ' AND (summary LIKE ? OR original_content LIKE ? OR keywords LIKE ?)';
+      const searchTerm = `%${query}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    if (category) {
+      sqlQuery += ' AND category = ?';
+      params.push(category);
+    }
+    
+    if (tags) {
+      sqlQuery += ' AND tags LIKE ?';
+      params.push(`%${tags}%`);
+    }
+    
+    sqlQuery += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    const result = await env.DB.prepare(sqlQuery).bind(...params).all();
+    
+    // 解析JSON字段
+    const contents = result.results.map(item => ({
+      ...item,
+      keywords: item.keywords ? JSON.parse(item.keywords) : [],
+      tags: item.tags ? JSON.parse(item.tags) : [],
+      source_info: item.source_info ? JSON.parse(item.source_info) : null
+    }));
+    
+    return jsonResponse({
+      success: true,
+      data: contents,
+      pagination: {
+        limit,
+        offset,
+        total: contents.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Search error:', error);
+    return jsonResponse({ error: '搜索失败: ' + error.message }, 500);
+  }
 }
 
 async function handleAnalyzeContent(request, env) {
-  return jsonResponse({ error: 'Not implemented yet' }, 501);
+  try {
+    const data = await request.json();
+    const { content, deepAnalysis = false } = data;
+    
+    if (!content || content.trim().length === 0) {
+      return jsonResponse({ error: '内容不能为空' }, 400);
+    }
+    
+    if (!env.GEMINI_API_KEY) {
+      return jsonResponse({ error: '未配置AI分析服务' }, 503);
+    }
+    
+    // 使用Gemini进行分析
+    const analysis = await analyzeWithGemini(
+      content.trim(), 
+      { autoTag: true, deepAnalysis }, 
+      env.GEMINI_API_KEY
+    );
+    
+    return jsonResponse({
+      success: true,
+      data: {
+        summary: analysis.summary || generateSummary(content),
+        keywords: analysis.keywords || extractBasicKeywords(content),
+        tags: analysis.tags || ['未分类'],
+        sentiment: analysis.sentiment || 0,
+        category: analysis.category || 'general',
+        importance_score: analysis.importance_score || 0.5,
+        word_count: content.length,
+        reading_time: Math.ceil(content.length / 200)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Analyze content error:', error);
+    return jsonResponse({ error: '分析内容失败: ' + error.message }, 500);
+  }
 }
 
 async function handleHealthCheck(request, env) {
