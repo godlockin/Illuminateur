@@ -10,6 +10,28 @@
 
 本项目设计为通过GitHub + Cloudflare Pages的方式进行部署，无需复杂的CI/CD配置。
 
+## ⚠️ 重要配置文件
+
+在部署之前，请确保以下关键配置文件已正确设置：
+
+### 1. `_routes.json` - API路由配置
+此文件告诉Cloudflare Pages哪些请求应该路由到Functions：
+```json
+{
+  "version": 1,
+  "include": ["/api/*"],
+  "exclude": []
+}
+```
+
+### 2. `wrangler.toml` - Cloudflare配置
+此文件包含项目的基本配置，确保Functions正常工作：
+- 设置Node.js兼容性
+- 配置构建输出目录
+- 定义环境变量
+
+**注意：如果遇到"API endpoint not found"错误，通常是因为缺少这些配置文件。**
+
 ## 🚀 详细部署步骤
 
 ### 第一步：准备GitHub仓库
@@ -376,11 +398,38 @@ curl -H 'Content-Type: application/json' \
    - 点击具体的部署记录查看详细日志
    - 查看构建过程中的错误信息
 
-2. **检查函数日志**
+2. **解决"API endpoint not found"错误**
+   
+   如果遇到此错误，请按以下步骤检查：
+   
+   a) **确认配置文件存在**：
+   ```bash
+   # 检查项目根目录是否包含以下文件
+   ls -la _routes.json wrangler.toml
+   ```
+   
+   b) **验证_routes.json内容**：
+   ```json
+   {
+     "version": 1,
+     "include": ["/api/*"],
+     "exclude": []
+   }
+   ```
+   
+   c) **检查wrangler.toml配置**：
+   - 确保包含`compatibility_flags = ["nodejs_compat"]`
+   - 确保`pages_build_output_dir = "public"`
+   
+   d) **重新部署**：
+   - 添加配置文件后，推送到GitHub触发重新部署
+   - 在Cloudflare Pages的Deployments页面确认部署成功
+
+3. **检查函数日志**
    - 在Cloudflare Dashboard的Functions页面查看实时日志
    - 使用浏览器开发者工具查看网络请求
 
-3. **验证配置**
+4. **验证配置**
    - 确认所有环境变量都已正确设置
    - 检查D1数据库和KV绑定是否正确配置
    - 验证Gemini API密钥是否有效
