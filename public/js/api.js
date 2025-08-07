@@ -211,22 +211,38 @@ class ApiClient {
     // 验证登录密钥
     async validateLogin(loginKey) {
         try {
-            // 临时设置认证令牌进行验证
-            const tempHeaders = {
-                'Authorization': `Bearer ${loginKey}`,
-                'Content-Type': 'application/json'
-            };
+            // 检查是否为本地开发环境
+            const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
-            const response = await fetch(`${this.baseUrl}/health`, {
-                method: 'GET',
-                headers: tempHeaders
-            });
-            
-            if (response.ok) {
-                this.setAuthToken(loginKey);
-                return { success: true };
+            if (isLocalDev) {
+                // 本地开发环境：模拟认证
+                // 可以设置一个默认的测试密钥，或者接受任何非空密钥
+                const validKeys = ['MyTestKey123!'];
+                
+                if (loginKey && (validKeys.includes(loginKey) || loginKey.length >= 6)) {
+                    this.setAuthToken(loginKey);
+                    return { success: true };
+                } else {
+                    return { success: false, error: '本地测试环境：请输入有效的测试密钥（如：MyTestKey123）' };
+                }
             } else {
-                return { success: false, error: '登录密钥错误' };
+                // 生产环境：调用后端API验证
+                const response = await fetch(`${this.baseUrl}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ loginKey })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    this.setAuthToken(data.token || loginKey);
+                    return { success: true };
+                } else {
+                    return { success: false, error: data.error || '登录密钥无效' };
+                }
             }
         } catch (error) {
             return { success: false, error: '验证失败: ' + error.message };

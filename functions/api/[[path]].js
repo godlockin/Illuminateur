@@ -17,6 +17,7 @@ const routes = {
   'GET /api/search': handleSearch,
   'POST /api/analyze': handleAnalyzeContent,
   'GET /api/health': handleHealthCheck,
+  'POST /api/login': handleLogin,
   'GET /api/version': handleVersion
 };
 
@@ -44,8 +45,8 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Route not found' }, 404);
     }
     
-    // 认证检查（除了健康检查和版本接口）
-    if (!path.includes('/health') && !path.includes('/version')) {
+    // 认证检查（除了版本接口和登录接口）
+    if (!path.includes('/version') && !path.includes('/login')) {
       const authResult = await checkAuthentication(request, env);
       if (!authResult.success) {
         return jsonResponse({ error: authResult.error }, 401);
@@ -1028,6 +1029,30 @@ async function handleHealthCheck(request, env) {
     timestamp: new Date().toISOString(),
     version: '0.1.0'
   });
+}
+
+async function handleLogin(request, env) {
+  try {
+    const { loginKey } = await request.json();
+    
+    if (!env.LOGIN_KEY) {
+      return jsonResponse({ error: '系统未配置登录密钥' }, 500);
+    }
+    
+    if (loginKey !== env.LOGIN_KEY) {
+      return jsonResponse({ error: '登录密钥错误' }, 401);
+    }
+    
+    return jsonResponse({ 
+      success: true, 
+      message: '登录成功',
+      token: loginKey
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    return jsonResponse({ error: '登录过程出错' }, 500);
+  }
 }
 
 async function handleVersion(request, env) {
