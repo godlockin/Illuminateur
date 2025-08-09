@@ -34,26 +34,70 @@ export async function handleRequest(request, env, ctx) {
         case '/api/process':
           if (method === 'POST') {
             return await handleProcessContent(request, env);
+          } else {
+            return new Response(JSON.stringify({ 
+              error: 'Method not allowed',
+              allowed: ['POST'],
+              received: method
+            }), {
+              status: 405,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Allow': 'POST'
+              }
+            });
           }
-          break;
           
         case '/api/search':
           if (method === 'GET') {
             return await handleSearch(request, env);
+          } else {
+            return new Response(JSON.stringify({ 
+              error: 'Method not allowed',
+              allowed: ['GET'],
+              received: method
+            }), {
+              status: 405,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Allow': 'GET'
+              }
+            });
           }
-          break;
           
         case '/api/content':
           if (method === 'GET') {
             return await handleGetContent(request, env);
+          } else {
+            return new Response(JSON.stringify({ 
+              error: 'Method not allowed',
+              allowed: ['GET'],
+              received: method
+            }), {
+              status: 405,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Allow': 'GET'
+              }
+            });
           }
-          break;
           
         case '/api/statistics':
           if (method === 'GET') {
             return await handleGetStatistics(request, env);
+          } else {
+            return new Response(JSON.stringify({ 
+              error: 'Method not allowed',
+              allowed: ['GET'],
+              received: method
+            }), {
+              status: 405,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Allow': 'GET'
+              }
+            });
           }
-          break;
           
         case '/api/health':
           if (method === 'GET') {
@@ -63,8 +107,28 @@ export async function handleRequest(request, env, ctx) {
             }), {
               headers: { 'Content-Type': 'application/json' }
             });
+          } else {
+            return new Response(JSON.stringify({ 
+              error: 'Method not allowed',
+              allowed: ['GET'],
+              received: method
+            }), {
+              status: 405,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Allow': 'GET'
+              }
+            });
           }
-          break;
+          
+        default:
+          return new Response(JSON.stringify({ 
+            error: 'API endpoint not found',
+            path: path
+          }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
       }
     }
 
@@ -88,12 +152,23 @@ async function handleProcessContent(request, env) {
   try {
     const formData = await request.formData();
     const contentType = formData.get('type'); // 'text', 'url', 'image'
-    const content = formData.get('content');
+    
+    // 根据类型获取不同的字段
+    let content;
+    if (contentType === 'url') {
+      content = formData.get('url') || formData.get('content');
+    } else if (contentType === 'text') {
+      content = formData.get('text') || formData.get('content');
+    } else {
+      content = formData.get('content');
+    }
+    
     const file = formData.get('file');
     
     if (!contentType || (!content && !file)) {
       return new Response(JSON.stringify({ 
-        error: 'Missing required parameters' 
+        error: 'Missing required parameters',
+        details: `Type: ${contentType}, Content: ${content ? 'present' : 'missing'}, File: ${file ? 'present' : 'missing'}`
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
