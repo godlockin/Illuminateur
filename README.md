@@ -1,269 +1,327 @@
-# 灵感收集器 (Inspiration Collector)
+# Illuminateur - 智能内容处理工具
 
-> 🚀 智能灵感收集与知识沉淀平台 - 将散落的灵感碎片转化为结构化知识
+一个部署在 Cloudflare Workers 上的智能内容处理工具，支持文本、URL 和图片的智能分析、翻译、摘要和标签生成。
 
-## 📖 项目简介
+## ✨ 功能特点
 
-灵感收集器是一个基于AI驱动的知识管理工具，旨在解决以下痛点：
-- **灵感碎片散落各处**：统一收集来自各个渠道的想法和内容
-- **"读过"不等于"读懂"**：通过AI分析帮助深度理解和记忆
-- **信息处理效率低**：自动标签、分类和摘要生成
+### 🔧 核心功能
+- **多格式输入支持**：文本、URL、图片三种输入方式
+- **智能内容提取**：自动从网页和图片中提取文本内容
+- **双语翻译归一化**：自动生成中英文双语版本
+- **智能摘要生成**：基于 AI 的内容摘要
+- **自动标签生成**：智能分类和标签推荐
+- **全文搜索**：支持关键词、类型、日期范围筛选
+- **数据统计分析**：内容趋势和标签使用统计
 
-## ✨ 核心特性
-
-### 🎯 v0.1 MVP功能
-- **🔐 安全认证**：基于环境变量的登录密钥保护系统安全
-- **多渠道内容接收**：支持文本、链接、邮件等多种输入方式
-- **AI智能分析**：基于Google Gemini的内容摘要、关键词提取、情感分析
-- **完整CRUD操作**：创建、读取、更新、删除内容的完整数据管理
-- **自动标签分类**：智能生成标签和分类，便于后续检索
-- **高级搜索功能**：全文搜索、分类筛选、标签过滤
-- **简洁展示界面**：对话式交互，卡片式内容展示
-- **实时统计**：收集数量、情感趋势等数据可视化
-
-### 🔮 未来规划
-- 内容关联推荐
-- 知识图谱可视化
-- 团队协作功能
-- 高级分析报告
-- 第三方应用集成
-
-## 🛠 技术架构
-
-### 技术栈
-- **前端**: HTML5 + CSS3 + Vanilla JavaScript + Tailwind CSS
-- **后端**: Cloudflare Workers (Serverless)
-- **数据库**: Cloudflare D1 (SQLite)
-- **AI服务**: Google Gemini API
-- **部署**: Cloudflare Pages
-- **存储**: Cloudflare KV (缓存)
-
-### 架构图
-```
-用户输入 → Cloudflare Workers → Gemini API → 数据处理 → D1存储 → 前端展示
-```
+### 🛠 技术特性
+- **Serverless 架构**：基于 Cloudflare Workers
+- **数据持久化**：使用 Cloudflare D1 数据库
+- **AI 集成**：支持 Gemini API
+- **OCR 处理**：图片文字识别
+- **响应式设计**：现代化 Web 界面
+- **访问控制**：基于 Token 的身份验证
 
 ## 🚀 快速开始
 
 ### 环境要求
 - Node.js 18+
-- Cloudflare账户
-- Google AI Studio账户（获取Gemini API Key）
+- Cloudflare 账户
+- Gemini API 密钥
 
-### 本地开发
-
-1. **克隆项目**
+### 1. 克隆项目
 ```bash
-git clone <your-repo-url>
-cd inspiration-collector
+git clone <repository-url>
+cd Illuminateur
 ```
 
-2. **安装依赖**
+### 2. 安装依赖
 ```bash
 npm install
 ```
 
-3. **配置环境变量**
-```bash
-# 复制配置文件
-cp wrangler.toml.example wrangler.toml
+### 3. 配置 Cloudflare
 
-# 编辑配置文件，填入你的配置
-vim wrangler.toml
+#### 3.1 登录 Cloudflare
+```bash
+npx wrangler login
 ```
 
-4. **初始化数据库**
+#### 3.2 创建 D1 数据库
 ```bash
-# 创建D1数据库
-npx wrangler d1 create inspiration-db
-
-# 执行数据库初始化脚本
-npx wrangler d1 execute inspiration-db --file=./schema/init.sql
+npx wrangler d1 create illuminateur-db
 ```
 
-5. **启动开发服务器**
+复制输出的数据库 ID，更新 `wrangler.toml` 中的 `database_id`。
+
+#### 3.3 初始化数据库
 ```bash
-# 启动开发服务器（推荐）
+npm run db:init
+```
+
+### 4. 配置环境变量
+
+在 Cloudflare Dashboard 中设置以下环境变量：
+
+```bash
+# 访问令牌（用于身份验证）
+ACCESS_TOKEN=your-secure-access-token
+
+# Gemini API 配置
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+MODEL_NAME=gemini-1.5-flash
+
+# 环境标识
+ENVIRONMENT=production
+```
+
+### 5. 部署
+```bash
+npm run deploy
+```
+
+## 📖 使用指南
+
+### 访问应用
+部署完成后，访问你的 Cloudflare Workers 域名，使用配置的 `ACCESS_TOKEN` 登录。
+
+### 内容处理
+
+#### 文本处理
+1. 选择「文本」输入类型
+2. 在文本框中输入或粘贴内容
+3. 点击「开始处理」
+
+#### URL 处理
+1. 选择「URL」输入类型
+2. 输入网页链接
+3. 系统会自动抓取网页内容并处理
+
+#### 图片处理
+1. 选择「图片」输入类型
+2. 拖拽或点击上传图片文件
+3. 系统会进行 OCR 识别并处理文本
+
+### 搜索功能
+- 点击搜索按钮打开搜索面板
+- 支持关键词搜索
+- 可按内容类型筛选
+- 可按日期范围筛选
+- 支持快捷键 `Ctrl/Cmd + K`
+
+### 统计分析
+- 点击统计按钮查看数据分析
+- 支持按日/周/月查看趋势
+- 显示热门标签和使用统计
+
+## 🔧 开发指南
+
+### 项目结构
+```
+Illuminateur/
+├── src/
+│   ├── index.js              # Worker 入口
+│   ├── handlers/
+│   │   └── requestHandler.js # 请求路由处理
+│   ├── middleware/
+│   │   └── auth.js           # 身份验证中间件
+│   ├── services/
+│   │   ├── contentService.js # 内容处理服务
+│   │   ├── aiService.js      # AI 服务集成
+│   │   ├── urlService.js     # URL 处理服务
+│   │   ├── ocrService.js     # OCR 服务
+│   │   ├── databaseService.js# 数据库服务
+│   │   ├── searchService.js  # 搜索服务
+│   │   └── statisticsService.js # 统计服务
+│   └── utils/
+│       └── cors.js           # CORS 工具
+├── public/
+│   ├── index.html            # 前端页面
+│   ├── style.css             # 样式文件
+│   └── script.js             # 前端脚本
+├── schema.sql                # 数据库结构
+├── wrangler.toml             # Cloudflare 配置
+└── package.json              # 项目配置
+```
+
+### 本地开发
+```bash
+# 启动开发服务器
 npm run dev
 
-# 或者使用简单HTTP服务器（演示模式）
-cd public && python3 -m http.server 3000
+# 数据库迁移
+npm run db:migrate
 ```
 
-访问 `http://localhost:3000` 查看应用
+### API 接口
 
-> 💡 **演示模式**：项目包含模拟数据，可以在没有后端API的情况下体验完整功能。
+#### POST /api/process
+处理内容（文本/URL/图片）
 
-### 部署到Cloudflare
+**请求参数：**
+- `type`: 内容类型（text/url/image）
+- `content`: 文本内容（type=text）
+- `url`: 网页链接（type=url）
+- `image`: 图片文件（type=image）
 
-1. **获取API密钥**
-- 访问 [Google AI Studio](https://makersuite.google.com/) 获取Gemini API密钥
-
-2. **上传到GitHub**
-- 创建GitHub仓库
-- 推送代码到仓库
-
-3. **配置Cloudflare**
-- 在Cloudflare Pages中连接GitHub仓库
-- 创建D1数据库和KV存储
-- 在项目设置中绑定资源和环境变量
-
-## 📁 项目结构
-
-```
-inspiration-collector/
-├── public/                 # 前端静态文件
-│   ├── index.html         # 主页面
-│   ├── css/
-│   │   └── styles.css     # 样式文件
-│   └── js/
-│       ├── app.js         # 主应用逻辑
-│       ├── api.js         # API客户端
-│       └── ui.js          # UI工具函数
-├── functions/             # Cloudflare Functions
-│   └── api/
-│       └── [[path]].js    # API路由处理
-├── schema/
-│   └── init.sql          # 数据库初始化脚本
-├── package.json          # 项目配置
-├── wrangler.toml         # Cloudflare配置
-└── README.md            # 项目文档
+**响应示例：**
+```json
+{
+  "id": "content-id",
+  "extractedText": "提取的原始文本",
+  "chineseText": "中文翻译版本",
+  "englishText": "英文翻译版本",
+  "summary": "内容摘要",
+  "tags": [
+    {
+      "name": "标签名称",
+      "category": "分类",
+      "confidence": 0.95
+    }
+  ]
+}
 ```
 
-## 🔧 配置说明
+#### GET /api/search
+搜索内容
 
-### Cloudflare配置
+**查询参数：**
+- `q`: 搜索关键词
+- `type`: 内容类型筛选
+- `from`: 开始日期
+- `to`: 结束日期
+- `page`: 页码（默认1）
+- `limit`: 每页数量（默认10）
 
-在 `wrangler.toml` 中配置：
+#### GET /api/content/:id
+获取内容详情
 
-```toml
-name = "inspiration-collector"
-compatibility_date = "2024-01-01"
+#### GET /api/statistics
+获取统计数据
 
-# D1 数据库
-[[d1_databases]]
-binding = "DB"
-database_name = "inspiration-db"
-database_id = "your-database-id"
+**查询参数：**
+- `period`: 统计周期（day/week/month）
+- `days`: 天数范围
 
-# KV存储
-[[kv_namespaces]]
-binding = "CACHE"
-id = "your-kv-id"
+#### GET /api/health
+健康检查
 
-# 环境变量
-[vars]
-GEMINI_API_KEY = "your-gemini-api-key"
+## 🔒 安全说明
+
+### 访问控制
+- 所有 API 接口（除根路径和健康检查）都需要访问令牌验证
+- 访问令牌通过 `X-Access-Token` 请求头传递
+- 建议使用强随机字符串作为访问令牌
+
+### 数据安全
+- 所有数据存储在 Cloudflare D1 数据库中
+- 支持 HTTPS 加密传输
+- 不记录敏感信息
+
+### 使用限制
+- 图片文件大小限制：10MB
+- 支持的图片格式：JPG、PNG、GIF、WebP
+- URL 抓取超时：30秒
+
+## 📊 监控和维护
+
+### 定时任务
+系统会自动执行以下定时任务：
+- **每日统计**：生成标签使用统计
+- **每周统计**：生成周度数据汇总
+
+### 日志监控
+可通过 Cloudflare Dashboard 查看：
+- Worker 执行日志
+- 错误和异常信息
+- 性能指标
+
+### 数据库维护
+```bash
+# 查看数据库状态
+npx wrangler d1 execute illuminateur-db --command "SELECT COUNT(*) FROM contents;"
+
+# 备份数据库
+npx wrangler d1 backup create illuminateur-db
 ```
 
-### Gemini API配置
-
-1. 访问 [Google AI Studio](https://makersuite.google.com/)
-2. 创建新的API密钥
-3. 在Cloudflare Dashboard中设置环境变量
-
-## 📊 数据模型
-
-### 内容表 (contents)
-- `id`: 唯一标识符
-- `original_content`: 原始内容
-- `content_type`: 内容类型（text/url/email）
-- `summary`: AI生成摘要
-- `keywords`: 关键词（JSON数组）
-- `tags`: 标签（JSON数组）
-- `sentiment`: 情感分析分数
-- `importance_score`: 重要性评分
-- `created_at`: 创建时间
-
-### 标签表 (tags)
-- `id`: 标签ID
-- `name`: 标签名称
-- `count`: 使用次数
-- `color`: 标签颜色
-
-## 🎨 使用指南
-
-### 基本操作
-
-1. **添加内容**
-   - 在输入框中粘贴文本、链接或邮件内容
-   - 选择内容类型
-   - 点击"收集灵感"按钮
-
-2. **查看内容**
-   - 浏览卡片式内容展示
-   - 使用搜索和筛选功能
-   - 点击卡片查看详情
-
-3. **管理标签**
-   - 查看自动生成的标签
-   - 手动添加或编辑标签
-   - 按标签筛选内容
-
-### 高级功能
-
-- **深度分析**：启用后进行更详细的AI分析
-- **批量操作**：选择多个内容进行批量处理
-- **数据导出**：导出内容为JSON或Markdown格式
-
-## 🔍 API文档
-
-### 主要端点
-
-- `POST /api/content` - 提交新内容
-- `GET /api/contents` - 获取内容列表
-- `GET /api/stats` - 获取统计数据
-- `GET /api/tags` - 获取标签列表
-- `GET /api/search` - 搜索内容
-
-详细API文档请参考代码中的注释。
-
-## 🐛 故障排除
+## 🛠 故障排除
 
 ### 常见问题
 
-1. **Gemini API调用失败**
-   - 检查API密钥是否正确设置
-   - 确认API配额是否充足
-   - 查看网络连接状态
+**1. 部署失败**
+- 检查 `wrangler.toml` 配置
+- 确认数据库 ID 正确
+- 验证环境变量设置
 
-2. **数据库连接错误**
-   - 确认D1数据库已正确创建
-   - 检查wrangler.toml中的数据库配置
-   - 运行数据库初始化脚本
+**2. 身份验证失败**
+- 检查 `ACCESS_TOKEN` 环境变量
+- 确认请求头格式正确
 
-3. **部署失败**
-   - 检查Cloudflare账户权限
-   - 确认所有环境变量已设置
-   - 查看部署日志获取详细错误信息
+**3. AI 处理失败**
+- 验证 Gemini API 密钥
+- 检查 API 配额和限制
+- 确认网络连接正常
 
-## 🤝 贡献指南
+**4. 图片处理失败**
+- 检查文件格式和大小
+- 验证 OCR 服务配置
 
-欢迎提交Issue和Pull Request！
+### 调试模式
+```bash
+# 启用详细日志
+ENVIRONMENT=development npm run dev
+```
 
-1. Fork项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+## 🔄 更新和升级
 
-## 📄 许可证
+### 版本更新
+```bash
+# 拉取最新代码
+git pull origin main
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+# 安装新依赖
+npm install
 
-## 🙏 致谢
+# 运行数据库迁移
+npm run db:migrate
 
-- [Cloudflare](https://cloudflare.com/) - 提供优秀的边缘计算平台
-- [Google AI](https://ai.google/) - 提供强大的Gemini AI服务
-- [Tailwind CSS](https://tailwindcss.com/) - 提供美观的CSS框架
+# 重新部署
+npm run deploy
+```
 
-## 📞 联系方式
+### 数据迁移
+如需修改数据库结构，请：
+1. 更新 `schema.sql`
+2. 创建迁移脚本
+3. 在生产环境谨慎执行
 
-如有问题或建议，请通过以下方式联系：
+## 📝 许可证
 
-- 提交 [Issue](https://github.com/your-username/inspiration-collector/issues)
-- 发送邮件至：your-email@example.com
+MIT License
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+### 开发流程
+1. Fork 项目
+2. 创建功能分支
+3. 提交更改
+4. 创建 Pull Request
+
+### 代码规范
+- 使用 ESLint 进行代码检查
+- 遵循现有代码风格
+- 添加必要的注释和文档
+
+## 📞 支持
+
+如有问题或建议，请：
+- 提交 GitHub Issue
+- 查看文档和 FAQ
+- 参考 Cloudflare Workers 官方文档
 
 ---
 
-**注意**: 这是一个概念验证（POC）项目，用于快速验证核心想法，并非生产级的安全完备商业软件。在生产环境中使用前，请确保进行充分的安全审计和性能测试。
+**Illuminateur** - 让内容处理更智能 ✨

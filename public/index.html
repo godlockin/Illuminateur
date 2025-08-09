@@ -3,301 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>灵感收集器 - 智能知识沉淀平台</title>
-    <meta name="description" content="将散落的灵感碎片转化为结构化知识，AI驱动的内容分析与智能标签">
-    
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💡</text></svg>">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="./css/styles.css">
-    
-    <!-- 动画效果样式 -->
-    <style>
-        /* 动画效果 */
-        .fade-in-up {
-            animation: fadeInUp 0.3s ease-out;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-        
-        .loading-dots::after {
-            content: '';
-            animation: loadingDots 1.5s infinite;
-        }
-        
-        @keyframes loadingDots {
-            0%, 20% {
-                content: '.';
-            }
-            40% {
-                content: '..';
-            }
-            60%, 100% {
-                content: '...';
-            }
-        }
-        
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .input-types {
-                flex-direction: column;
-            }
-            
-            .input-type-btn {
-                width: 100%;
-            }
-        }
-    </style>
-    
-    <!-- Tailwind CSS CDN for rapid prototyping -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Custom Tailwind Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#8B5CF6',
-                        accent: '#F59E0B'
-                    }
-                }
-            }
-        }
-    </script>
+    <title>Illuminateur - 智能内容处理工具</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💡</text></svg>">
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-4xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="text-2xl">💡</div>
-                    <div>
-                        <h1 class="text-xl font-bold text-gray-900">灵感收集器</h1>
-                        <p class="text-sm text-gray-500">AI驱动的知识沉淀平台</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button id="statsBtn" class="text-gray-600 hover:text-primary transition-colors">
-                        📊 统计
-                    </button>
-                    <button id="settingsBtn" class="text-gray-600 hover:text-primary transition-colors">
-                        ⚙️ 设置
-                    </button>
-                </div>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">💡</span>
+                    Illuminateur
+                </h1>
+                <p class="subtitle">智能内容处理与分析工具</p>
             </div>
-        </div>
-    </header>
+            <div class="header-actions">
+                <button id="statsBtn" class="btn btn-secondary">
+                    <span class="icon">📊</span>
+                    统计
+                </button>
+                <button id="searchBtn" class="btn btn-secondary">
+                    <span class="icon">🔍</span>
+                    搜索
+                </button>
+            </div>
+        </header>
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 py-6">
-        <!-- Quick Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg p-4 shadow-sm">
-                <div class="text-2xl font-bold text-primary" id="totalCount">0</div>
-                <div class="text-sm text-gray-600">总收集数</div>
-            </div>
-            <div class="bg-white rounded-lg p-4 shadow-sm">
-                <div class="text-2xl font-bold text-secondary" id="todayCount">0</div>
-                <div class="text-sm text-gray-600">今日新增</div>
-            </div>
-            <div class="bg-white rounded-lg p-4 shadow-sm">
-                <div class="text-2xl font-bold text-accent" id="tagCount">0</div>
-                <div class="text-sm text-gray-600">标签数量</div>
-            </div>
-            <div class="bg-white rounded-lg p-4 shadow-sm">
-                <div class="text-2xl font-bold text-green-600" id="avgSentiment">0</div>
-                <div class="text-sm text-gray-600">平均情感</div>
-            </div>
-        </div>
-
-        <!-- Input Section -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 class="text-lg font-semibold mb-4 flex items-center">
-                <span class="mr-2">💭</span>
-                分享你的灵感
-            </h2>
-            
-            <!-- Input Form -->
-            <form id="contentForm" class="space-y-4">
-                <div class="flex space-x-2">
-                    <button type="button" class="input-type-btn active" data-type="text">
-                        📝 文本
-                    </button>
-                    <button type="button" class="input-type-btn" data-type="url">
-                        🔗 链接
-                    </button>
-                    <button type="button" class="input-type-btn" data-type="email">
-                        📧 邮件
-                    </button>
-                </div>
-                
-                <div class="relative">
-                    <textarea 
-                        id="contentInput" 
-                        placeholder="在这里输入你的想法、粘贴文章内容或分享链接..." 
-                        class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                        rows="4"
-                        required
-                    ></textarea>
-                    <div class="absolute bottom-3 right-3 text-sm text-gray-400" id="charCount">0/5000</div>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="autoTag" checked class="mr-2">
-                            <span class="text-sm text-gray-600">自动标签</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="deepAnalysis" class="mr-2">
-                            <span class="text-sm text-gray-600">深度分析</span>
-                        </label>
+        <!-- 主要内容区域 -->
+        <main class="main">
+            <!-- 输入区域 -->
+            <section class="input-section">
+                <div class="input-container">
+                    <div class="input-header">
+                        <h2>内容输入</h2>
+                        <div class="input-types">
+                            <span class="input-type active" data-type="text">
+                                <span class="icon">📝</span>
+                                文本
+                            </span>
+                            <span class="input-type" data-type="url">
+                                <span class="icon">🔗</span>
+                                链接
+                            </span>
+                            <span class="input-type" data-type="image">
+                                <span class="icon">🖼️</span>
+                                图片
+                            </span>
+                        </div>
                     </div>
                     
-                    <button 
-                        type="submit" 
-                        id="submitBtn"
-                        class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <span>🚀</span>
-                        <span>收集灵感</span>
-                    </button>
+                    <!-- 文本输入 -->
+                    <div class="input-area" id="textInput">
+                        <textarea 
+                            id="textContent" 
+                            placeholder="请输入要处理的文本内容..."
+                            rows="6"
+                        ></textarea>
+                    </div>
+                    
+                    <!-- URL输入 -->
+                    <div class="input-area hidden" id="urlInput">
+                        <input 
+                            type="url" 
+                            id="urlContent" 
+                            placeholder="请输入要处理的网页链接..."
+                        >
+                        <div class="url-preview" id="urlPreview"></div>
+                    </div>
+                    
+                    <!-- 图片输入 -->
+                    <div class="input-area hidden" id="imageInput">
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <input type="file" id="imageFile" accept="image/*" hidden>
+                            <div class="upload-placeholder">
+                                <span class="upload-icon">📁</span>
+                                <p>点击选择图片文件或拖拽到此处</p>
+                                <p class="upload-hint">支持 JPG, PNG, GIF, WebP 格式</p>
+                            </div>
+                        </div>
+                        <div class="image-preview" id="imagePreview"></div>
+                    </div>
+                    
+                    <!-- 处理按钮 -->
+                    <div class="input-actions">
+                        <button id="processBtn" class="btn btn-primary">
+                            <span class="icon">⚡</span>
+                            <span class="btn-text">开始处理</span>
+                            <span class="loading-spinner hidden">🔄</span>
+                        </button>
+                        <button id="clearBtn" class="btn btn-outline">
+                            <span class="icon">🗑️</span>
+                            清空
+                        </button>
+                    </div>
                 </div>
-            </form>
-        </div>
+            </section>
 
-        <!-- Filter and Search -->
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                <div class="flex items-center space-x-4">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="搜索内容..." 
-                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                    <select id="categoryFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                        <option value="">所有分类</option>
-                        <option value="idea">想法</option>
-                        <option value="article">文章</option>
-                        <option value="quote">引用</option>
-                        <option value="todo">待办</option>
-                        <option value="learning">学习</option>
-                    </select>
+            <!-- 结果展示区域 -->
+            <section class="results-section" id="resultsSection">
+                <div class="results-container">
+                    <div class="results-header">
+                        <h2>处理结果</h2>
+                        <div class="results-actions">
+                            <button id="exportBtn" class="btn btn-outline btn-sm">
+                                <span class="icon">💾</span>
+                                导出
+                            </button>
+                            <button id="shareBtn" class="btn btn-outline btn-sm">
+                                <span class="icon">🔗</span>
+                                分享
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="results-content" id="resultsContent">
+                        <!-- 结果将在这里动态显示 -->
+                    </div>
                 </div>
-                
-                <div class="flex items-center space-x-2">
-                    <button id="viewToggle" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        📋 列表视图
-                    </button>
-                    <button id="refreshBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        🔄 刷新
-                    </button>
+            </section>
+        </main>
+
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <!-- 搜索面板 -->
+            <div class="sidebar-panel" id="searchPanel">
+                <div class="panel-header">
+                    <h3>内容搜索</h3>
+                    <button class="panel-close" data-panel="search">&times;</button>
+                </div>
+                <div class="panel-content">
+                    <div class="search-form">
+                        <input type="text" id="searchQuery" placeholder="搜索内容...">
+                        <div class="search-filters">
+                            <select id="contentTypeFilter">
+                                <option value="">所有类型</option>
+                                <option value="text">文本</option>
+                                <option value="url">链接</option>
+                                <option value="image">图片</option>
+                            </select>
+                            <input type="date" id="dateFromFilter">
+                            <input type="date" id="dateToFilter">
+                        </div>
+                        <button id="searchSubmitBtn" class="btn btn-primary btn-sm">
+                            <span class="icon">🔍</span>
+                            搜索
+                        </button>
+                    </div>
+                    <div class="search-results" id="searchResults">
+                        <!-- 搜索结果将在这里显示 -->
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Content List -->
-        <div id="contentList" class="space-y-4">
-            <!-- 内容将通过JavaScript动态加载 -->
-            <div class="text-center py-12 text-gray-500">
-                <div class="text-4xl mb-4">🌟</div>
-                <p>还没有收集任何灵感</p>
-                <p class="text-sm">开始分享你的第一个想法吧！</p>
+            <!-- 统计面板 -->
+            <div class="sidebar-panel" id="statsPanel">
+                <div class="panel-header">
+                    <h3>数据统计</h3>
+                    <button class="panel-close" data-panel="stats">&times;</button>
+                </div>
+                <div class="panel-content">
+                    <div class="stats-controls">
+                        <select id="statsPeriod">
+                            <option value="daily">每日</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                        <input type="number" id="statsDays" value="7" min="1" max="365" placeholder="天数">
+                        <button id="refreshStatsBtn" class="btn btn-primary btn-sm">
+                            <span class="icon">🔄</span>
+                            刷新
+                        </button>
+                    </div>
+                    <div class="stats-content" id="statsContent">
+                        <!-- 统计数据将在这里显示 -->
+                    </div>
+                </div>
             </div>
-        </div>
+        </aside>
 
-        <!-- Load More Button -->
-        <div class="text-center mt-6">
-            <button id="loadMoreBtn" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors hidden">
-                加载更多
-            </button>
-        </div>
-    </main>
+        <!-- 遮罩层 -->
+        <div class="overlay" id="overlay"></div>
+    </div>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span>AI正在分析中...</span>
+    <!-- 模态框 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">标题</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 模态框内容 -->
+            </div>
+            <div class="modal-footer">
+                <button id="modalCancel" class="btn btn-outline">取消</button>
+                <button id="modalConfirm" class="btn btn-primary">确认</button>
+            </div>
         </div>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    <!-- 通知容器 -->
+    <div class="notifications" id="notifications"></div>
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">🔐 身份验证</h2>
-                <p class="text-gray-600">请输入登录密钥以访问系统</p>
+    <!-- 登录模态框 -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>身份验证</h3>
             </div>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginKey" class="block text-sm font-medium text-gray-700 mb-2">
-                        登录密钥
-                    </label>
-                    <input 
-                        type="password" 
-                        id="loginKey" 
-                        name="loginKey" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="请输入登录密钥"
-                        required
-                    >
+            <div class="modal-body">
+                <div class="login-form">
+                    <label for="accessToken">访问令牌:</label>
+                    <input type="password" id="accessToken" placeholder="请输入访问令牌">
+                    <div class="login-error" id="loginError"></div>
                 </div>
-                <div id="loginError" class="text-red-600 text-sm hidden"></div>
-                <button 
-                    type="submit" 
-                    class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                >
-                    登录
-                </button>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button id="loginSubmit" class="btn btn-primary">登录</button>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <!-- 模拟数据（开发/演示模式） -->
-    <script src="./js/mock-data.js"></script>
-    
-    <script src="./js/app.js"></script>
-    <script src="./js/ui.js"></script>
-    <script src="./js/api.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>

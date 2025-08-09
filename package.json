@@ -1,24 +1,29 @@
 {
-  "name": "inspiration-collector",
+  "name": "illuminateur",
   "version": "0.1.0",
-  "description": "智能灵感收集与知识沉淀平台",
-  "main": "index.js",
+  "description": "智能内容处理工具 - 支持文字、URL、图片的OCR、翻译、总结和标记",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "wrangler pages dev public",
-    "build": "echo 'Building static files...'",
-    "preview": "wrangler pages dev public --port 3000"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute illuminateur-db --file=./schema.sql",
+    "db:migrate": "wrangler d1 migrations apply illuminateur-db"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "tesseract.js": "^5.0.4"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.13"
   },
   "keywords": [
-    "inspiration",
-    "knowledge-management",
-    "ai",
     "cloudflare",
-    "gemini"
+    "workers",
+    "ocr",
+    "translation",
+    "ai",
+    "content-processing"
   ],
-  "author": "Your Name",
-  "license": "MIT",
-  "devDependencies": {
-    "wrangler": "^3.0.0"
-  },
-  "dependencies": {}
+  "author": "工匠PM",
+  "license": "MIT"
 }
