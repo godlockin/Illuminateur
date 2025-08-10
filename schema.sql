@@ -1,52 +1,37 @@
--- 内容存储表
-CREATE TABLE IF NOT EXISTS contents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content_type TEXT NOT NULL, -- 'text', 'url', 'image'
-    original_content TEXT NOT NULL, -- 原始内容或URL
-    extracted_text TEXT, -- 提取的文本内容
-    chinese_text TEXT, -- 中文版本
-    english_text TEXT, -- 英文版本
-    summary TEXT, -- 摘要
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- Illuminateur Database Schema for Cloudflare D1
+-- Run this script to initialize your D1 database
 
--- 标签表
-CREATE TABLE IF NOT EXISTS tags (
+-- Table for storing input metadata
+CREATE TABLE IF NOT EXISTS inputs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    category TEXT, -- 标签分类
+    type TEXT NOT NULL CHECK (type IN ('text', 'url', 'image')),
+    r2_object_key TEXT NOT NULL,
+    original_content TEXT, -- Store original text input or URL
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 内容标签关联表
-CREATE TABLE IF NOT EXISTS content_tags (
+-- Table for storing LLM analysis results
+CREATE TABLE IF NOT EXISTS llm_outputs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
-    confidence REAL DEFAULT 1.0, -- 标签置信度
+    input_id INTEGER NOT NULL,
+    summary TEXT NOT NULL,
+    keywords TEXT NOT NULL, -- JSON array as string
+    extracted_tables TEXT, -- JSON string for table data
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (content_id) REFERENCES contents(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
-    UNIQUE(content_id, tag_id)
+    FOREIGN KEY (input_id) REFERENCES inputs(id)
 );
 
--- 统计表（用于每日/每周统计）
-CREATE TABLE IF NOT EXISTS tag_statistics (
+-- Table for storing weekly insights
+CREATE TABLE IF NOT EXISTS weekly_insights (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tag_id INTEGER NOT NULL,
-    period_type TEXT NOT NULL, -- 'daily', 'weekly'
-    period_date DATE NOT NULL, -- 统计日期
-    count INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
-    UNIQUE(tag_id, period_type, period_date)
+    insight_text TEXT NOT NULL,
+    week_start_date TEXT NOT NULL, -- ISO date string (YYYY-MM-DD)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 创建索引提高查询性能
-CREATE INDEX IF NOT EXISTS idx_contents_created_at ON contents(created_at);
-CREATE INDEX IF NOT EXISTS idx_contents_type ON contents(content_type);
-CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
-CREATE INDEX IF NOT EXISTS idx_content_tags_content ON content_tags(content_id);
-CREATE INDEX IF NOT EXISTS idx_content_tags_tag ON content_tags(tag_id);
-CREATE INDEX IF NOT EXISTS idx_statistics_period ON tag_statistics(period_type, period_date);
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_inputs_created_at ON inputs(created_at);
+CREATE INDEX IF NOT EXISTS idx_inputs_type ON inputs(type);
+CREATE INDEX IF NOT EXISTS idx_llm_outputs_input_id ON llm_outputs(input_id);
+CREATE INDEX IF NOT EXISTS idx_llm_outputs_created_at ON llm_outputs(created_at);
+CREATE INDEX IF NOT EXISTS idx_weekly_insights_week_start ON weekly_insights(week_start_date);

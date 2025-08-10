@@ -2,25 +2,38 @@ name = "illuminateur"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-# 环境变量配置
+# Environment variables
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 
-# D1 数据库绑定
+# Secrets (set via wrangler secret put)
+# ACCESS_TOKEN - Authentication token for the application
+# GEMINI_API_KEY - Google Gemini API key
+
+# R2 Object Storage binding
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "illuminateur-storage"
+
+# D1 Database binding
 [[d1_databases]]
-binding = "DB"
+binding = "D1_DB"
 database_name = "illuminateur-db"
 database_id = "your-database-id-here"
 
-# 生产环境配置
-[env.production]
-name = "illuminateur-prod"
+# AI binding for Cloudflare AI
+[ai]
+binding = "AI"
 
-[env.production.vars]
-ENVIRONMENT = "production"
+# Cron trigger for weekly insights
+[triggers]
+crons = ["0 0 * * 0"]  # Every Sunday at midnight UTC
 
-# 需要在Cloudflare Dashboard中设置的环境变量:
-# ACCESS_TOKEN - 用于登录验证的访问令牌
-# GEMINI_API_KEY - Gemini API密钥
-# GEMINI_BASE_URL - Gemini API基础URL (默认: https://generativelanguage.googleapis.com)
-# MODEL_NAME - 使用的模型名称 (默认: gemini-pro)
+# Build configuration
+[build]
+command = "npm run build"
+
+# Development configuration
+[env.development]
+[env.development.vars]
+ENVIRONMENT = "development"

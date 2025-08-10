@@ -1,29 +1,29 @@
 {
   "name": "illuminateur",
-  "version": "0.1.0",
-  "description": "智能内容处理工具 - 支持文字、URL、图片的OCR、翻译、总结和标记",
+  "version": "1.0.0",
+  "description": "Personal Information Capture and Analysis Tool built on Cloudflare Stack",
   "main": "src/index.js",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "db:init": "wrangler d1 execute illuminateur-db --file=./schema.sql",
-    "db:migrate": "wrangler d1 migrations apply illuminateur-db"
-  },
-  "dependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "tesseract.js": "^5.0.4"
-  },
-  "devDependencies": {
-    "wrangler": "^3.114.13"
+    "dev": "echo '请使用 Cloudflare Dashboard 进行开发和部署'",
+    "deploy": "echo '请参考 deploy.sh 中的手动部署指南'",
+    "setup": "./deploy.sh",
+    "guide": "cat deploy.sh"
   },
   "keywords": [
     "cloudflare",
     "workers",
-    "ocr",
-    "translation",
     "ai",
-    "content-processing"
+    "analysis",
+    "insights",
+    "gemini",
+    "serverless"
   ],
-  "author": "工匠PM",
-  "license": "MIT"
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

@@ -1,327 +1,274 @@
-# Illuminateur - 智能内容处理工具
+# 🔍 Illuminateur - Personal Insight Collector
 
-一个部署在 Cloudflare Workers 上的智能内容处理工具，支持文本、URL 和图片的智能分析、翻译、摘要和标签生成。
+一个基于 Cloudflare 技术栈构建的个人信息捕获和分析工具，能够处理文本、URL 和图片，使用大语言模型进行智能分析，并生成每周洞察报告。
 
-## ✨ 功能特点
+## 🏗️ 系统架构
 
-### 🔧 核心功能
-- **多格式输入支持**：文本、URL、图片三种输入方式
-- **智能内容提取**：自动从网页和图片中提取文本内容
-- **双语翻译归一化**：自动生成中英文双语版本
-- **智能摘要生成**：基于 AI 的内容摘要
-- **自动标签生成**：智能分类和标签推荐
-- **全文搜索**：支持关键词、类型、日期范围筛选
-- **数据统计分析**：内容趋势和标签使用统计
+### 技术栈
+- **计算**: Cloudflare Workers (前端服务 + 后端 API)
+- **对象存储**: Cloudflare R2 (存储原始文件)
+- **数据库**: Cloudflare D1 (存储元数据和分析结果)
+- **AI 模型**: Google Gemini API
+- **前端**: 原生 HTML/CSS/JavaScript
 
-### 🛠 技术特性
-- **Serverless 架构**：基于 Cloudflare Workers
-- **数据持久化**：使用 Cloudflare D1 数据库
-- **AI 集成**：支持 Gemini API
-- **OCR 处理**：图片文字识别
-- **响应式设计**：现代化 Web 界面
-- **访问控制**：基于 Token 的身份验证
+### 数据流程
+1. **认证**: 用户通过 ACCESS_TOKEN 进行身份验证
+2. **输入处理**: 
+   - 文本：直接传递给 LLM 分析
+   - URL：下载 HTML，提取文本内容和表格
+   - 图片：上传到 R2，使用视觉模型分析
+3. **AI 分析**: 调用 Gemini API 生成摘要和关键词
+4. **数据存储**: 原始内容存储在 R2，分析结果存储在 D1
+5. **周报生成**: 每周日自动生成洞察报告
 
-## 🚀 快速开始
+## 📊 数据库设计
 
-### 环境要求
-- Node.js 18+
-- Cloudflare 账户
-- Gemini API 密钥
-
-### 1. 克隆项目
-```bash
-git clone <repository-url>
-cd Illuminateur
+### inputs 表
+存储输入内容的元数据
+```sql
+CREATE TABLE inputs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK (type IN ('text', 'url', 'image')),
+    r2_object_key TEXT NOT NULL,
+    original_content TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-### 2. 安装依赖
+### llm_outputs 表
+存储 AI 分析结果
+```sql
+CREATE TABLE llm_outputs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    input_id INTEGER NOT NULL,
+    summary TEXT NOT NULL,
+    keywords TEXT NOT NULL, -- JSON 数组
+    extracted_tables TEXT, -- JSON 字符串
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (input_id) REFERENCES inputs(id)
+);
+```
+
+### weekly_insights 表
+存储每周洞察报告
+```sql
+CREATE TABLE weekly_insights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    insight_text TEXT NOT NULL,
+    week_start_date TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 🚀 部署指南
+
+### 前置要求
+- Cloudflare 账户
+- Google Cloud 账户（用于 Gemini API）
+- 基本的 Web 开发知识
+
+### 手动部署
+
+由于 `wrangler login` 可能存在问题，推荐使用 Cloudflare Dashboard 进行手动部署：
+
+```bash
+# 1. 查看部署指南
+./deploy.sh
+
+# 或者
+npm run guide
+```
+
+**重要提示**: 本项目采用手动部署方式，请按照 `deploy.sh` 中的详细步骤在 Cloudflare Dashboard 中操作。
+
+### 1. 安装依赖
 ```bash
 npm install
 ```
 
-### 3. 配置 Cloudflare
-
-#### 3.1 登录 Cloudflare
+### 2. 创建 Cloudflare 资源
 ```bash
-npx wrangler login
+# 创建 D1 数据库
+wrangler d1 create illuminateur-db
+
+# 创建 R2 存储桶
+wrangler r2 bucket create illuminateur-storage
+
+# 初始化数据库表
+wrangler d1 execute illuminateur-db --file=./schema.sql
 ```
 
-#### 3.2 创建 D1 数据库
-```bash
-npx wrangler d1 create illuminateur-db
+### 3. 配置环境变量
+更新 `wrangler.toml` 中的 `database_id`：
+```toml
+[[d1_databases]]
+binding = "D1_DB"
+database_name = "illuminateur-db"
+database_id = "your-actual-database-id-here"
 ```
 
-复制输出的数据库 ID，更新 `wrangler.toml` 中的 `database_id`。
-
-#### 3.3 初始化数据库
+### 4. 设置密钥
 ```bash
-npm run db:init
+# 设置访问令牌（用于应用认证）
+wrangler secret put ACCESS_TOKEN
+
+# 设置 Gemini API 密钥
+wrangler secret put GEMINI_API_KEY
 ```
 
-### 4. 配置环境变量
-
-在 Cloudflare Dashboard 中设置以下环境变量：
-
+### 5. 部署应用
 ```bash
-# 访问令牌（用于身份验证）
-ACCESS_TOKEN=your-secure-access-token
+# 开发环境
+npm run dev
 
-# Gemini API 配置
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-MODEL_NAME=gemini-1.5-flash
-
-# 环境标识
-ENVIRONMENT=production
-```
-
-### 5. 部署
-```bash
+# 生产部署
 npm run deploy
 ```
 
-## 📖 使用指南
+## 🎯 功能特性
 
-### 访问应用
-部署完成后，访问你的 Cloudflare Workers 域名，使用配置的 `ACCESS_TOKEN` 登录。
+### 核心功能
+- ✅ **多格式输入**: 支持文本、URL、图片三种输入方式
+- ✅ **智能分析**: 使用 Gemini AI 生成摘要和关键词
+- ✅ **数据持久化**: R2 存储原始文件，D1 存储结构化数据
+- ✅ **周报生成**: 自动生成每周洞察报告
+- ✅ **Web 界面**: 简洁美观的单页应用
 
-### 内容处理
+### 处理逻辑
 
 #### 文本处理
-1. 选择「文本」输入类型
-2. 在文本框中输入或粘贴内容
-3. 点击「开始处理」
+- 直接传递给 LLM 进行分析
+- 生成摘要和 1-5 个关键词
+- 原始文本保存为 `.txt` 文件
 
 #### URL 处理
-1. 选择「URL」输入类型
-2. 输入网页链接
-3. 系统会自动抓取网页内容并处理
+- 获取完整 HTML 内容
+- 提取可读文本和表格数据
+- HTML 文件存储在 R2
+- 提取的内容发送给 LLM 分析
 
 #### 图片处理
-1. 选择「图片」输入类型
-2. 拖拽或点击上传图片文件
-3. 系统会进行 OCR 识别并处理文本
+- 图片文件直接上传到 R2
+- 使用 Gemini 视觉模型分析图片内容
+- 生成图片描述和相关关键词
 
-### 搜索功能
-- 点击搜索按钮打开搜索面板
-- 支持关键词搜索
-- 可按内容类型筛选
-- 可按日期范围筛选
-- 支持快捷键 `Ctrl/Cmd + K`
+## 🔧 API 接口
 
-### 统计分析
-- 点击统计按钮查看数据分析
-- 支持按日/周/月查看趋势
-- 显示热门标签和使用统计
+### POST /api/capture
+提交内容进行分析
 
-## 🔧 开发指南
-
-### 项目结构
+**请求头**:
 ```
-Illuminateur/
-├── src/
-│   ├── index.js              # Worker 入口
-│   ├── handlers/
-│   │   └── requestHandler.js # 请求路由处理
-│   ├── middleware/
-│   │   └── auth.js           # 身份验证中间件
-│   ├── services/
-│   │   ├── contentService.js # 内容处理服务
-│   │   ├── aiService.js      # AI 服务集成
-│   │   ├── urlService.js     # URL 处理服务
-│   │   ├── ocrService.js     # OCR 服务
-│   │   ├── databaseService.js# 数据库服务
-│   │   ├── searchService.js  # 搜索服务
-│   │   └── statisticsService.js # 统计服务
-│   └── utils/
-│       └── cors.js           # CORS 工具
-├── public/
-│   ├── index.html            # 前端页面
-│   ├── style.css             # 样式文件
-│   └── script.js             # 前端脚本
-├── schema.sql                # 数据库结构
-├── wrangler.toml             # Cloudflare 配置
-└── package.json              # 项目配置
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: multipart/form-data
 ```
 
-### 本地开发
-```bash
-# 启动开发服务器
-npm run dev
+**请求体**:
+- `type`: 输入类型 (text/url/image)
+- `content`: 文本内容或 URL (当 type 为 text 或 url 时)
+- `file`: 图片文件 (当 type 为 image 时)
 
-# 数据库迁移
-npm run db:migrate
-```
-
-### API 接口
-
-#### POST /api/process
-处理内容（文本/URL/图片）
-
-**请求参数：**
-- `type`: 内容类型（text/url/image）
-- `content`: 文本内容（type=text）
-- `url`: 网页链接（type=url）
-- `image`: 图片文件（type=image）
-
-**响应示例：**
+**响应**:
 ```json
 {
-  "id": "content-id",
-  "extractedText": "提取的原始文本",
-  "chineseText": "中文翻译版本",
-  "englishText": "英文翻译版本",
-  "summary": "内容摘要",
-  "tags": [
-    {
-      "name": "标签名称",
-      "category": "分类",
-      "confidence": 0.95
-    }
-  ]
+  "success": true,
+  "inputId": 123,
+  "analysis": {
+    "summary": "内容摘要",
+    "keywords": ["关键词1", "关键词2"],
+    "extractedTables": [...]
+  }
 }
 ```
 
-#### GET /api/search
-搜索内容
+### GET /api/insights
+获取周报洞察
 
-**查询参数：**
-- `q`: 搜索关键词
-- `type`: 内容类型筛选
-- `from`: 开始日期
-- `to`: 结束日期
-- `page`: 页码（默认1）
-- `limit`: 每页数量（默认10）
-
-#### GET /api/content/:id
-获取内容详情
-
-#### GET /api/statistics
-获取统计数据
-
-**查询参数：**
-- `period`: 统计周期（day/week/month）
-- `days`: 天数范围
-
-#### GET /api/health
-健康检查
-
-## 🔒 安全说明
-
-### 访问控制
-- 所有 API 接口（除根路径和健康检查）都需要访问令牌验证
-- 访问令牌通过 `X-Access-Token` 请求头传递
-- 建议使用强随机字符串作为访问令牌
-
-### 数据安全
-- 所有数据存储在 Cloudflare D1 数据库中
-- 支持 HTTPS 加密传输
-- 不记录敏感信息
-
-### 使用限制
-- 图片文件大小限制：10MB
-- 支持的图片格式：JPG、PNG、GIF、WebP
-- URL 抓取超时：30秒
-
-## 📊 监控和维护
-
-### 定时任务
-系统会自动执行以下定时任务：
-- **每日统计**：生成标签使用统计
-- **每周统计**：生成周度数据汇总
-
-### 日志监控
-可通过 Cloudflare Dashboard 查看：
-- Worker 执行日志
-- 错误和异常信息
-- 性能指标
-
-### 数据库维护
-```bash
-# 查看数据库状态
-npx wrangler d1 execute illuminateur-db --command "SELECT COUNT(*) FROM contents;"
-
-# 备份数据库
-npx wrangler d1 backup create illuminateur-db
+**请求头**:
+```
+Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
 
-## 🛠 故障排除
-
-### 常见问题
-
-**1. 部署失败**
-- 检查 `wrangler.toml` 配置
-- 确认数据库 ID 正确
-- 验证环境变量设置
-
-**2. 身份验证失败**
-- 检查 `ACCESS_TOKEN` 环境变量
-- 确认请求头格式正确
-
-**3. AI 处理失败**
-- 验证 Gemini API 密钥
-- 检查 API 配额和限制
-- 确认网络连接正常
-
-**4. 图片处理失败**
-- 检查文件格式和大小
-- 验证 OCR 服务配置
-
-### 调试模式
-```bash
-# 启用详细日志
-ENVIRONMENT=development npm run dev
+**响应**:
+```json
+[
+  {
+    "id": 1,
+    "insight_text": "本周最有价值的洞察...",
+    "week_start_date": "2024-01-07",
+    "created_at": "2024-01-14T00:00:00.000Z"
+  }
+]
 ```
 
-## 🔄 更新和升级
+## ⚡ 定时任务
 
-### 版本更新
+系统配置了每周日午夜 UTC 时间运行的 Cron 任务：
+- 收集过去一周的所有分析摘要
+- 使用 LLM 生成综合洞察
+- 存储到 `weekly_insights` 表
+
+## 🛡️ 安全考虑
+
+**重要提醒**: 这是一个概念验证（POC）项目，用于快速验证核心想法，并非生产级的安全完备商业软件。
+
+### 当前安全措施
+- Bearer Token 认证
+- 环境变量存储敏感信息
+- 输入类型验证
+
+### 生产环境建议
+- 实现更强的身份认证机制
+- 添加输入内容过滤和验证
+- 设置 API 调用频率限制
+- 加强错误处理和日志记录
+
+## 🎨 界面预览
+
+应用提供了简洁美观的 Web 界面：
+- **捕获页面**: 支持三种输入方式的统一界面
+- **洞察页面**: 展示历史周报和洞察
+- **响应式设计**: 适配桌面和移动设备
+
+## 📝 使用示例
+
+1. **文本分析**:
+   - 输入: "今天学习了 Cloudflare Workers 的部署流程..."
+   - 输出: 摘要 + 关键词如 ["Cloudflare", "Workers", "部署"]
+
+2. **URL 分析**:
+   - 输入: "https://blog.cloudflare.com/workers-ai"
+   - 输出: 网页内容摘要 + 提取的表格数据
+
+3. **图片分析**:
+   - 输入: 架构图或截图
+   - 输出: 图片内容描述 + 相关技术关键词
+
+## 🔄 开发工作流
+
 ```bash
-# 拉取最新代码
-git pull origin main
+# 本地开发
+npm run dev
 
-# 安装新依赖
-npm install
+# 数据库操作
+npm run db:init    # 初始化表结构
 
-# 运行数据库迁移
-npm run db:migrate
-
-# 重新部署
+# 部署到生产
 npm run deploy
 ```
 
-### 数据迁移
-如需修改数据库结构，请：
-1. 更新 `schema.sql`
-2. 创建迁移脚本
-3. 在生产环境谨慎执行
+## 📈 扩展可能性
 
-## 📝 许可证
+- **多模型支持**: 集成更多 AI 模型
+- **高级分析**: 情感分析、主题建模
+- **数据可视化**: 添加图表和趋势分析
+- **协作功能**: 多用户支持和分享机制
+- **移动应用**: 开发原生移动客户端
 
-MIT License
-
-## 🤝 贡献
+## 🤝 贡献指南
 
 欢迎提交 Issue 和 Pull Request！
 
-### 开发流程
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 创建 Pull Request
+## 📄 许可证
 
-### 代码规范
-- 使用 ESLint 进行代码检查
-- 遵循现有代码风格
-- 添加必要的注释和文档
-
-## 📞 支持
-
-如有问题或建议，请：
-- 提交 GitHub Issue
-- 查看文档和 FAQ
-- 参考 Cloudflare Workers 官方文档
-
----
-
-**Illuminateur** - 让内容处理更智能 ✨
+MIT License - 详见 LICENSE 文件
