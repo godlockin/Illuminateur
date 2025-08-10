@@ -718,28 +718,34 @@ function extractTextFromHTML(html) {
 }
 
 /**
- * Call Gemini API with streaming support
+ * Call Gemini API (non-streaming for better reliability)
  */
 async function callGeminiAPI(prompt, env) {
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY not found in environment variables');
+    }
+
+    // 使用环境变量指定的模型，如果没有则默认使用 gemini-2.5-flash
+    const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    
     try {
         const requestBody = {
             contents: [{
-                role: "user",
                 parts: [{
                     text: prompt
                 }]
             }],
             generationConfig: {
-                thinkingConfig: {
-                    thinkingBudget: -1
-                }
-            },
-            tools: [{
-                googleSearch: {}
-            }]
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 2048
+            }
         };
         
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${env.GEMINI_API_KEY}`, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -748,39 +754,20 @@ async function callGeminiAPI(prompt, env) {
         });
         
         if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
         }
         
-        // Handle streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let result = '';
+        const responseData = await response.json();
         
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-                if (line.trim() && line.startsWith('data: ')) {
-                    try {
-                        const jsonData = JSON.parse(line.slice(6));
-                        if (jsonData.candidates && jsonData.candidates[0] && jsonData.candidates[0].content) {
-                            const parts = jsonData.candidates[0].content.parts;
-                            if (parts && parts[0] && parts[0].text) {
-                                result += parts[0].text;
-                            }
-                        }
-                    } catch (e) {
-                        // Skip invalid JSON lines
-                    }
-                }
+        if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+            const parts = responseData.candidates[0].content.parts;
+            if (parts && parts[0] && parts[0].text) {
+                return parts[0].text;
             }
         }
         
-        return result || 'No response generated';
+        return 'No response generated';
     } catch (error) {
         console.error('Gemini API call failed:', error);
         throw error;
@@ -798,20 +785,11 @@ async function analyzeWithLLM(content, type, env) {
         const base64Image = btoa(String.fromCharCode(...new Uint8Array(content)));
 
         // [OPTIMIZED PROMPT FOR IMAGE]
-        const prompt = `You are a specialized JSON API for image analysis. Your sole function is to analyze the provided image and return a structured JSON response.
+        const prompt = `分析这张图片并提供以下信息：
+1. 简洁的图片描述（1-2句话）
+2. 1-5个相关关键词
 
-Instructions:
-1.  **summary**: Write a one to two-sentence descriptive summary of the image.
-2.  **keywords**: Identify 1-5 key objects, themes, or concepts in the image.
-
-Output Format:
-Your response MUST be a single, valid JSON object and nothing else. Do not include markdown formatting (e.g., \`\`\`json) or any other explanatory text.
-
-Required JSON Schema:
-{
-  "summary": "string",
-  "keywords": ["string"]
-}`;
+请以JSON格式回复：{"summary": "描述", "keywords": ["关键词1", "关键词2"]}`;
 
         const requestBody = {
             contents: [{
@@ -819,15 +797,23 @@ Required JSON Schema:
                     { text: prompt },
                     {
                         inline_data: {
-                            mime_type: "image/jpeg", // or other appropriate MIME type
+                            mime_type: "image/jpeg",
                             data: base64Image
                         }
                     }
                 ]
-            }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024
+            }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${env.GEMINI_API_KEY}`, {
+        // 使用环境变量指定的模型，如果没有则默认使用 gemini-2.5-flash
+        const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
@@ -839,49 +825,59 @@ Required JSON Schema:
         }
 
         const responseData = await response.json();
-        generatedText = responseData.candidates[0].content.parts[0].text;
+        if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+            generatedText = responseData.candidates[0].content.parts[0].text;
+        } else {
+            generatedText = 'No response generated';
+        }
 
 
     } else {
         // --- TEXT/URL ANALYSIS PATH ---
         const textContent = typeof content === 'object' ? content.text : content;
-        // Ensure tables is always an array
         const tables = typeof content === 'object' && Array.isArray(content.tables) ? content.tables : [];
 
-        // [OPTIMIZED PROMPT FOR TEXT/URL]
-        // Note: We are constructing a string that looks like a JSON object to send as the prompt.
-        const prompt = `{
-  "task": "StructuredContentAnalysis",
-  "instructions": {
-    "summary": "Analyze the 'textContent' and generate a concise summary of 2-3 sentences.",
-    "keywords": "Extract 1 to 5 of the most relevant keywords from the 'textContent'. Return them as a JSON array of strings.",
-    "tables": "Analyze each raw table string provided in the 'input_tables' array. Convert each table into a valid, well-formatted Markdown table string. If 'input_tables' is empty, return an empty array.",
-    "output_format": "Your entire response MUST be a single, valid JSON object, without any markdown formatting or other text outside the JSON. The JSON object must match the schema: {\\"summary\\": \\"string\\", \\"keywords\\": [\\"string\\"], \\"extractedTables\\": [\\"string (Markdown format)\\"]}"
-  },
-  "data": {
-    "textContent": ${JSON.stringify(textContent)},
-    "input_tables": ${JSON.stringify(tables)}
-  }
-}`;
-        // The callGeminiAPI function is assumed to exist and handle the request
+        // [SIMPLIFIED PROMPT FOR TEXT/URL]
+        const prompt = `分析以下内容并提供：
+1. 简洁摘要（2-3句话）
+2. 1-5个关键词
+3. 如果有表格数据，提取关键信息
+
+内容：${textContent}
+
+${tables.length > 0 ? `表格数据：${tables.join('\n\n')}` : ''}
+
+请以JSON格式回复：{"summary": "摘要", "keywords": ["关键词"], "extractedTables": ["表格信息"]}`;
+        
         generatedText = await callGeminiAPI(prompt, env);
     }
 
     try {
         // Clean the response to remove potential markdown wrappers
-        const cleanText = generatedText.replace(/^```json\s*|```\s*$/g, '');
+        let cleanText = generatedText.replace(/^```json\s*|```\s*$/g, '').trim();
+        
+        // Try to extract JSON from the response if it's embedded in other text
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            cleanText = jsonMatch[0];
+        }
+        
         const analysis = JSON.parse(cleanText);
         return {
             summary: analysis.summary || 'No summary provided',
-            keywords: analysis.keywords || [],
-            extractedTables: analysis.extractedTables || [] // Return empty array for consistency
+            keywords: Array.isArray(analysis.keywords) ? analysis.keywords : [],
+            extractedTables: Array.isArray(analysis.extractedTables) ? analysis.extractedTables : []
         };
     } catch (e) {
         console.error("Failed to parse JSON from LLM response:", generatedText);
-        // Fallback if JSON parsing fails
+        
+        // Try to extract useful information even if JSON parsing fails
+        const lines = generatedText.split('\n').filter(line => line.trim());
+        const summary = lines.length > 0 ? lines[0].substring(0, 200) : 'Analysis completed';
+        
         return {
-            summary: `Failed to parse response. Raw output: ${generatedText.substring(0, 500)}`,
-            keywords: ['error', 'parsing_failed'],
+            summary: summary,
+            keywords: ['content', 'analysis'],
             extractedTables: []
         };
     }

@@ -141,6 +141,9 @@ wrangler secret put ACCESS_TOKEN
 
 # 设置 Gemini API 密钥
 wrangler secret put GEMINI_API_KEY
+
+# 可选：设置 Gemini 模型（默认使用 gemini-2.5-flash）
+wrangler secret put GEMINI_MODEL
 ```
 
 ### 5. 部署应用
