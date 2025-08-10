@@ -455,7 +455,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export default {
+// Worker 对象
+const worker = {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         
@@ -479,6 +480,9 @@ export default {
         ctx.waitUntil(generateWeeklyInsight(env));
     }
 };
+
+// 导出 Worker
+export default worker;
 
 /**
  * Authentication middleware

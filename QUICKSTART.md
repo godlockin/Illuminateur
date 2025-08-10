@@ -6,16 +6,83 @@
 2. **Cloudflare 账户** - [免费注册](https://dash.cloudflare.com/sign-up)
 3. **Google Gemini API 密钥** - [获取密钥](https://makersuite.google.com/app/apikey)
 
-## 🚀 手动部署指南
+## 🚀 部署指南
 
 ### 前置要求
 - Cloudflare 账户
+- GitHub 账户
 - Google Cloud 账户（用于 Gemini API）
 - 基本的 Web 开发知识
 
-### 手动部署步骤
+### 方式一：Cloudflare Pages 部署（推荐）
 
-由于 `wrangler login` 可能存在问题，推荐使用 Cloudflare Dashboard 进行手动部署：
+这是最简单的部署方式，通过 GitHub 自动同步：
+
+#### 步骤 1: 推送到 GitHub
+
+```bash
+# 初始化 Git 仓库（如果还没有）
+git init
+git add .
+git commit -m "Initial commit"
+
+# 推送到 GitHub
+git remote add origin https://github.com/your-username/illuminateur.git
+git push -u origin main
+```
+
+#### 步骤 2: 连接 Cloudflare Pages
+
+1. 访问 [Cloudflare Pages](https://pages.cloudflare.com/)
+2. 点击 "Create a project"
+3. 选择 "Connect to Git"
+4. 授权并选择你的 GitHub 仓库
+5. 项目名称：`illuminateur`
+6. 构建设置保持默认，点击 "Save and Deploy"
+
+#### 步骤 3: 创建必要资源
+
+在 Cloudflare Dashboard 中创建：
+
+1. **D1 数据库**
+   - 进入 `Workers & Pages` > `D1 SQL Database`
+   - 创建数据库：`illuminateur-db`
+   - 复制 Database ID
+
+2. **R2 存储桶**
+   - 进入 `R2 Object Storage`
+   - 创建存储桶：`illuminateur-storage`
+
+#### 步骤 4: 配置 Pages 项目
+
+1. **环境变量**
+   - 在 Pages 项目中，进入 `Settings` > `Environment variables`
+   - 添加变量：
+     - `ACCESS_TOKEN`: 你的自定义访问令牌
+     - `GEMINI_API_KEY`: [获取 Gemini API 密钥](https://makersuite.google.com/app/apikey)
+
+2. **服务绑定**
+   - 在 `Settings` > `Functions` > `Bindings`
+   - 添加 D1 绑定：
+     - 变量名：`D1_DB`
+     - 数据库：选择 `illuminateur-db`
+   - 添加 R2 绑定：
+     - 变量名：`R2_BUCKET`
+     - 存储桶：选择 `illuminateur-storage`
+
+#### 步骤 5: 初始化数据库
+
+1. 在 D1 数据库页面，点击 `Console`
+2. 复制 `schema.sql` 的内容并执行
+
+#### 步骤 6: 重新部署
+
+1. 在 Pages 项目中，点击 `Deployments`
+2. 点击 "Retry deployment" 或推送新的提交触发重新部署
+
+### 方式二：手动部署
+
+如果你不想使用 GitHub 同步，可以手动部署：
 
 #### 步骤 1: 创建 Cloudflare 资源
 

@@ -4,6 +4,7 @@
   "description": "Personal Information Capture and Analysis Tool built on Cloudflare Stack",
   "main": "src/index.js",
   "scripts": {
+    "build": "echo 'No build step required - this is a Cloudflare Worker project'",
     "dev": "echo '请使用 Cloudflare Dashboard 进行开发和部署'",
     "deploy": "echo '请参考 deploy.sh 中的手动部署指南'",
     "setup": "./deploy.sh",

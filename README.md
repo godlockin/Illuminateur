@@ -79,7 +79,34 @@ CREATE TABLE weekly_insights (
 npm run guide
 ```
 
-**重要提示**: 本项目采用手动部署方式，请按照 `deploy.sh` 中的详细步骤在 Cloudflare Dashboard 中操作。
+**重要提示**: 本项目支持两种部署方式：
+1. **Cloudflare Pages (推荐)**: 通过 GitHub 同步自动部署
+2. **手动部署**: 在 Cloudflare Dashboard 中手动操作
+
+### Cloudflare Pages 部署
+
+1. **准备 GitHub 仓库**
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+
+2. **连接到 Cloudflare Pages**
+   - 访问 [Cloudflare Pages](https://pages.cloudflare.com/)
+   - 点击 "Create a project" > "Connect to Git"
+   - 选择你的 GitHub 仓库
+   - 构建设置保持默认即可
+
+3. **配置环境变量和绑定**
+   - 在 Pages 项目设置中添加环境变量：
+     - `ACCESS_TOKEN`: 你的访问令牌
+     - `GEMINI_API_KEY`: Gemini API 密钥
+   - 添加服务绑定：
+     - D1 数据库: `D1_DB`
+     - R2 存储桶: `R2_BUCKET`
+
+详细步骤请参考 [QUICKSTART.md](./QUICKSTART.md)
 
 ### 1. 安装依赖
 ```bash

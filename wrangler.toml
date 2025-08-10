@@ -1,39 +1,32 @@
 name = "illuminateur"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
 
-# Environment variables
+# 环境变量
 [vars]
 ENVIRONMENT = "production"
 
-# Secrets (set via wrangler secret put)
-# ACCESS_TOKEN - Authentication token for the application
-# GEMINI_API_KEY - Google Gemini API key
+# D1 数据库绑定
+[[d1_databases]]
+binding = "D1_DB"
+database_name = "illuminateur-db"
+database_id = "your-database-id-here"  # 需要替换为实际的数据库 ID
 
-# R2 Object Storage binding
+# R2 存储绑定
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "illuminateur-storage"
 
-# D1 Database binding
-[[d1_databases]]
-binding = "D1_DB"
-database_name = "illuminateur-db"
-database_id = "your-database-id-here"
-
-# AI binding for Cloudflare AI
+# AI 绑定 (Cloudflare AI)
 [ai]
 binding = "AI"
 
-# Cron trigger for weekly insights
-[triggers]
-crons = ["0 0 * * 0"]  # Every Sunday at midnight UTC
+# 定时任务 - 每周日生成洞察报告
+[[triggers.crons]]
+cron = "0 9 * * 0"  # 每周日上午9点
 
-# Build configuration
+# Pages 构建配置
 [build]
 command = "npm run build"
-
-# Development configuration
-[env.development]
-[env.development.vars]
-ENVIRONMENT = "development"
+watch_dir = "src"
