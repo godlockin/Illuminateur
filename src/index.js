@@ -51,6 +51,21 @@ const HTML_CONTENT = `<!DOCTYPE html>
             opacity: 0.9;
         }
         
+        .auth-gate {
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .auth-gate h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-gate p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
         .tabs {
             display: flex;
             background: #f8f9fa;
@@ -176,6 +191,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
             border: 1px solid #f5c6cb;
         }
         
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
         .insights-list {
             space-y: 1rem;
         }
@@ -212,6 +233,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -221,66 +246,73 @@ const HTML_CONTENT = `<!DOCTYPE html>
             <p>Personal Insight Collector & Analyzer</p>
         </div>
         
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('capture')">Capture</button>
-            <button class="tab" onclick="switchTab('insights')">Weekly Insights</button>
+        <!-- Authentication Gate -->
+        <div id="auth-gate" class="auth-gate">
+            <h2>🔒 需要身份验证</h2>
+            <p>请输入您的访问令牌以继续使用</p>
+            <div class="form-group">
+                <input type="password" id="access-token-gate" placeholder="请输入访问令牌">
+                <button class="btn" onclick="authenticateUser()" style="margin-top: 1rem;">验证身份</button>
+            </div>
+            <div id="auth-status" class="status"></div>
         </div>
         
-        <div class="tab-content">
-            <!-- Capture Tab -->
-            <div id="capture-tab" class="tab-pane active">
-                <div class="auth-section">
-                    <div class="form-group">
-                        <label for="access-token">Access Token:</label>
-                        <input type="password" id="access-token" placeholder="Enter your access token">
-                    </div>
-                </div>
-                
-                <form id="capture-form">
-                    <div class="form-group">
-                        <label for="input-type">Input Type:</label>
-                        <select id="input-type" onchange="toggleInputMethod()">
-                            <option value="text">Text</option>
-                            <option value="url">URL</option>
-                            <option value="image">Image</option>
-                        </select>
-                    </div>
-                    
-                    <div id="text-input" class="form-group">
-                        <label for="text-content">Text Content:</label>
-                        <textarea id="text-content" placeholder="Enter your text here..."></textarea>
-                    </div>
-                    
-                    <div id="url-input" class="form-group" style="display: none;">
-                        <label for="url-content">URL:</label>
-                        <input type="url" id="url-content" placeholder="https://example.com">
-                    </div>
-                    
-                    <div id="image-input" class="form-group" style="display: none;">
-                        <label>Image File:</label>
-                        <div class="file-input" onclick="document.getElementById('image-file').click()">
-                            <input type="file" id="image-file" accept="image/*" style="display: none;" onchange="updateFileName()">
-                            <div id="file-text">📁 Click to select an image file</div>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn" id="submit-btn">
-                        <span id="submit-text">Analyze & Store</span>
-                        <span id="submit-loading" class="loading" style="display: none;"></span>
-                    </button>
-                </form>
-                
-                <div id="status" class="status"></div>
+        <!-- Main Application -->
+        <div id="main-app" class="hidden">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('capture')">捕获</button>
+                <button class="tab" onclick="switchTab('insights')">每周洞察</button>
             </div>
             
-            <!-- Insights Tab -->
-            <div id="insights-tab" class="tab-pane">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <h2>Weekly Insights</h2>
-                    <button class="btn" onclick="loadInsights()">🔄 Refresh</button>
+            <div class="tab-content">
+                <!-- Capture Tab -->
+                <div id="capture-tab" class="tab-pane active">
+                    <form id="capture-form">
+                        <div class="form-group">
+                            <label for="input-type">输入类型:</label>
+                            <select id="input-type" onchange="toggleInputMethod()">
+                                <option value="text">文本</option>
+                                <option value="url">URL 链接</option>
+                                <option value="image">图片</option>
+                            </select>
+                        </div>
+                        
+                        <div id="text-input" class="form-group">
+                            <label for="text-content">文本内容:</label>
+                            <textarea id="text-content" placeholder="请输入您的文本内容..."></textarea>
+                        </div>
+                        
+                        <div id="url-input" class="form-group" style="display: none;">
+                            <label for="url-content">URL 链接:</label>
+                            <input type="url" id="url-content" placeholder="https://example.com">
+                        </div>
+                        
+                        <div id="image-input" class="form-group" style="display: none;">
+                            <label>图片文件:</label>
+                            <div class="file-input" onclick="document.getElementById('image-file').click()">
+                                <input type="file" id="image-file" accept="image/*" style="display: none;" onchange="updateFileName()">
+                                <div id="file-text">📁 点击选择图片文件</div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn" id="submit-btn">
+                            <span id="submit-text">分析并存储</span>
+                            <span id="submit-loading" class="loading" style="display: none;"></span>
+                        </button>
+                    </form>
+                    
+                    <div id="status" class="status"></div>
                 </div>
-                <div id="insights-list" class="insights-list">
-                    <p>Click refresh to load your weekly insights...</p>
+                
+                <!-- Insights Tab -->
+                <div id="insights-tab" class="tab-pane">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2>每周洞察</h2>
+                        <button class="btn" onclick="loadInsights()">🔄 刷新</button>
+                    </div>
+                    <div id="insights-list" class="insights-list">
+                        <p>点击刷新按钮加载您的每周洞察...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -288,6 +320,45 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     <script>
         let accessToken = '';
+        
+        function authenticateUser() {
+            const token = document.getElementById('access-token-gate').value;
+            if (!token) {
+                showAuthStatus('请输入访问令牌', 'error');
+                return;
+            }
+            
+            // Test the token by making a simple API call
+            fetch('/api/test', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    accessToken = token;
+                    document.getElementById('auth-gate').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    showAuthStatus('认证成功！', 'success');
+                } else {
+                    showAuthStatus('访问令牌无效', 'error');
+                }
+            })
+            .catch(error => {
+                showAuthStatus('认证失败，请重试', 'error');
+            });
+        }
+        
+        function showAuthStatus(message, type) {
+            const status = document.getElementById('auth-status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
         
         function switchTab(tabName) {
             // Update tab buttons
@@ -323,7 +394,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
             if (fileInput.files.length > 0) {
                 fileText.textContent = '📁 ' + fileInput.files[0].name;
             } else {
-                fileText.textContent = '📁 Click to select an image file';
+                fileText.textContent = '📁 点击选择图片文件';
             }
         }
         
@@ -346,50 +417,52 @@ const HTML_CONTENT = `<!DOCTYPE html>
             submitBtn.disabled = loading;
             submitText.style.display = loading ? 'none' : 'inline';
             submitLoading.style.display = loading ? 'inline-block' : 'none';
+            
+            if (loading) {
+                showStatus('正在处理中...', 'info');
+            }
         }
         
         async function loadInsights() {
-            const token = document.getElementById('access-token').value;
-            if (!token) {
-                showStatus('Please enter your access token first', 'error');
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
                 return;
             }
             
             try {
                 const response = await fetch('/api/insights', {
                     headers: {
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': 'Bearer ' + accessToken
                     }
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Failed to load insights');
+                    throw new Error('加载洞察失败');
                 }
                 
                 const insights = await response.json();
                 const insightsList = document.getElementById('insights-list');
                 
                 if (insights.length === 0) {
-                    insightsList.innerHTML = '<p>No weekly insights generated yet. Check back after Sunday!</p>';
+                    insightsList.innerHTML = '<p>暂无每周洞察。请在周日后查看！</p>';
                 } else {
                     insightsList.innerHTML = insights.map(insight => 
                         '<div class="insight-item">' +
-                            '<div class="insight-date">Week of ' + insight.week_start_date + '</div>' +
+                            '<div class="insight-date">' + insight.week_start_date + ' 开始的一周</div>' +
                             '<div class="insight-text">' + insight.insight_text + '</div>' +
                         '</div>'
                     ).join('');
                 }
             } catch (error) {
-                showStatus('Error loading insights: ' + error.message, 'error');
+                showStatus('加载洞察时出错: ' + error.message, 'error');
             }
         }
         
         document.getElementById('capture-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const token = document.getElementById('access-token').value;
-            if (!token) {
-                showStatus('Please enter your access token first', 'error');
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
                 return;
             }
             
@@ -401,21 +474,21 @@ const HTML_CONTENT = `<!DOCTYPE html>
             if (inputType === 'text') {
                 const textContent = document.getElementById('text-content').value;
                 if (!textContent.trim()) {
-                    showStatus('Please enter some text', 'error');
+                    showStatus('请输入一些文本', 'error');
                     return;
                 }
                 formData.append('content', textContent);
             } else if (inputType === 'url') {
                 const urlContent = document.getElementById('url-content').value;
                 if (!urlContent.trim()) {
-                    showStatus('Please enter a URL', 'error');
+                    showStatus('请输入一个URL', 'error');
                     return;
                 }
                 formData.append('content', urlContent);
             } else if (inputType === 'image') {
                 const imageFile = document.getElementById('image-file').files[0];
                 if (!imageFile) {
-                    showStatus('Please select an image file', 'error');
+                    showStatus('请选择一个图片文件', 'error');
                     return;
                 }
                 formData.append('file', imageFile);
@@ -427,18 +500,18 @@ const HTML_CONTENT = `<!DOCTYPE html>
                 const response = await fetch('/api/capture', {
                     method: 'POST',
                     headers: {
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': 'Bearer ' + accessToken
                     },
                     body: formData
                 });
                 
                 if (!response.ok) {
                     const error = await response.text();
-                    throw new Error(error || 'Failed to process input');
+                    throw new Error(error || '处理输入失败');
                 }
                 
                 const result = await response.json();
-                showStatus('Successfully processed and analyzed your input!', 'success');
+                showStatus('成功处理并分析了您的输入！', 'success');
                 
                 // Clear form
                 document.getElementById('capture-form').reset();
@@ -446,7 +519,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
                 updateFileName();
                 
             } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
+                showStatus('错误: ' + error.message, 'error');
             } finally {
                 setLoading(false);
             }
@@ -507,6 +580,12 @@ async function handleAPI(request, env, url) {
     }
     
     try {
+        if (url.pathname === '/api/test' && request.method === 'GET') {
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
         if (url.pathname === '/api/capture' && request.method === 'POST') {
             return await handleCapture(request, env);
         }
@@ -639,87 +718,171 @@ function extractTextFromHTML(html) {
 }
 
 /**
+ * Call Gemini API with streaming support
+ */
+async function callGeminiAPI(prompt, env) {
+    try {
+        const requestBody = {
+            contents: [{
+                role: "user",
+                parts: [{
+                    text: prompt
+                }]
+            }],
+            generationConfig: {
+                thinkingConfig: {
+                    thinkingBudget: -1
+                }
+            },
+            tools: [{
+                googleSearch: {}
+            }]
+        };
+        
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${env.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Gemini API error: ${response.status}`);
+        }
+        
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let result = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.trim() && line.startsWith('data: ')) {
+                    try {
+                        const jsonData = JSON.parse(line.slice(6));
+                        if (jsonData.candidates && jsonData.candidates[0] && jsonData.candidates[0].content) {
+                            const parts = jsonData.candidates[0].content.parts;
+                            if (parts && parts[0] && parts[0].text) {
+                                result += parts[0].text;
+                            }
+                        }
+                    } catch (e) {
+                        // Skip invalid JSON lines
+                    }
+                }
+            }
+        }
+        
+        return result || 'No response generated';
+    } catch (error) {
+        console.error('Gemini API call failed:', error);
+        throw error;
+    }
+}
+
+/**
  * Analyze content with LLM (Gemini)
  */
 async function analyzeWithLLM(content, type, env) {
-    let prompt;
-    let requestBody;
-    
-    if (type === 'image') {
-        // For image analysis
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(content)));
-        
-        prompt = `Analyze this image and provide:
-1. A concise summary of what you see
-2. 1-5 relevant keywords
+    let generatedText = '';
 
-Respond in JSON format: {"summary": "...", "keywords": ["...", "..."]}`;
-        
-        requestBody = {
+    if (type === 'image') {
+        // --- IMAGE ANALYSIS PATH ---
+        const base64Image = btoa(String.fromCharCode(...new Uint8Array(content)));
+
+        // [OPTIMIZED PROMPT FOR IMAGE]
+        const prompt = `You are a specialized JSON API for image analysis. Your sole function is to analyze the provided image and return a structured JSON response.
+
+Instructions:
+1.  **summary**: Write a one to two-sentence descriptive summary of the image.
+2.  **keywords**: Identify 1-5 key objects, themes, or concepts in the image.
+
+Output Format:
+Your response MUST be a single, valid JSON object and nothing else. Do not include markdown formatting (e.g., \`\`\`json) or any other explanatory text.
+
+Required JSON Schema:
+{
+  "summary": "string",
+  "keywords": ["string"]
+}`;
+
+        const requestBody = {
             contents: [{
                 parts: [
                     { text: prompt },
                     {
                         inline_data: {
-                            mime_type: "image/jpeg",
+                            mime_type: "image/jpeg", // or other appropriate MIME type
                             data: base64Image
                         }
                     }
                 ]
             }]
         };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${env.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Gemini API error: ${response.status} ${errorBody}`);
+        }
+
+        const responseData = await response.json();
+        generatedText = responseData.candidates[0].content.parts[0].text;
+
+
     } else {
-        // For text/URL analysis
+        // --- TEXT/URL ANALYSIS PATH ---
         const textContent = typeof content === 'object' ? content.text : content;
-        const tables = typeof content === 'object' ? content.tables : [];
-        
-        prompt = `Analyze the following content and provide:
-1. A concise summary (2-3 sentences)
-2. 1-5 relevant keywords
-3. If there are any tables, extract their key information
+        // Ensure tables is always an array
+        const tables = typeof content === 'object' && Array.isArray(content.tables) ? content.tables : [];
 
-Content: ${textContent}
-
-${tables.length > 0 ? `Tables found: ${tables.join('\n\n')}` : ''}
-
-Respond in JSON format: {"summary": "...", "keywords": ["...", "..."], "extractedTables": [{"title": "...", "data": "..."}]}`;
-        
-        requestBody = {
-            contents: [{
-                parts: [{ text: prompt }]
-            }]
-        };
+        // [OPTIMIZED PROMPT FOR TEXT/URL]
+        // Note: We are constructing a string that looks like a JSON object to send as the prompt.
+        const prompt = `{
+  "task": "StructuredContentAnalysis",
+  "instructions": {
+    "summary": "Analyze the 'textContent' and generate a concise summary of 2-3 sentences.",
+    "keywords": "Extract 1 to 5 of the most relevant keywords from the 'textContent'. Return them as a JSON array of strings.",
+    "tables": "Analyze each raw table string provided in the 'input_tables' array. Convert each table into a valid, well-formatted Markdown table string. If 'input_tables' is empty, return an empty array.",
+    "output_format": "Your entire response MUST be a single, valid JSON object, without any markdown formatting or other text outside the JSON. The JSON object must match the schema: {\\"summary\\": \\"string\\", \\"keywords\\": [\\"string\\"], \\"extractedTables\\": [\\"string (Markdown format)\\"]}"
+  },
+  "data": {
+    "textContent": ${JSON.stringify(textContent)},
+    "input_tables": ${JSON.stringify(tables)}
+  }
+}`;
+        // The callGeminiAPI function is assumed to exist and handle the request
+        generatedText = await callGeminiAPI(prompt, env);
     }
-    
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    const generatedText = result.candidates[0].content.parts[0].text;
-    
+
     try {
-        // Try to parse JSON response
-        const analysis = JSON.parse(generatedText);
+        // Clean the response to remove potential markdown wrappers
+        const cleanText = generatedText.replace(/^```json\s*|```\s*$/g, '');
+        const analysis = JSON.parse(cleanText);
         return {
             summary: analysis.summary || 'No summary provided',
             keywords: analysis.keywords || [],
-            extractedTables: analysis.extractedTables || null
+            extractedTables: analysis.extractedTables || [] // Return empty array for consistency
         };
     } catch (e) {
+        console.error("Failed to parse JSON from LLM response:", generatedText);
         // Fallback if JSON parsing fails
         return {
-            summary: generatedText.substring(0, 500),
-            keywords: ['analysis', 'content'],
-            extractedTables: null
+            summary: `Failed to parse response. Raw output: ${generatedText.substring(0, 500)}`,
+            keywords: ['error', 'parsing_failed'],
+            extractedTables: []
         };
     }
 }
@@ -768,24 +931,7 @@ async function generateWeeklyInsight(env) {
         // Generate weekly insight
         const prompt = `Based on the following weekly inputs, what is the single most valuable or surprising insight? Synthesize a new, original viewpoint that connects the themes. Be concise but profound.\n\nWeekly content summaries:\n${combinedContent}`;
         
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }]
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        const insightText = result.candidates[0].content.parts[0].text;
+        const insightText = await callGeminiAPI(prompt, env);
         
         // Store weekly insight
         await env.D1_DB.prepare(
