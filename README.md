@@ -139,14 +139,52 @@ database_id = "your-actual-database-id-here"
 # 设置访问令牌（用于应用认证）
 wrangler secret put ACCESS_TOKEN
 
-# 设置 Gemini API 密钥
-wrangler secret put GEMINI_API_KEY
+# 设置 AI API 密钥（支持多种提供商）
+wrangler secret put AI_API_KEY
 
-# 可选：设置 Gemini 模型（默认使用 gemini-2.5-flash）
+# 可选：设置 AI 提供商（默认: gemini）
+wrangler secret put AI_PROVIDER
+
+# 可选：设置 AI 模型（默认: gemini-2.5-flash）
+wrangler secret put AI_MODEL
+
+# 可选：设置 AI API 基础 URL
+wrangler secret put AI_BASE_URL
+
+# 向后兼容：仍支持原有的 Gemini 配置
+wrangler secret put GEMINI_API_KEY
 wrangler secret put GEMINI_MODEL
 ```
 
-### 5. 部署应用
+### 5. AI 配置选项
+
+应用支持多种 AI 服务提供商，通过环境变量进行配置：
+
+#### Gemini (Google) 配置
+```bash
+# 推荐配置方式
+wrangler secret put AI_PROVIDER gemini
+wrangler secret put AI_API_KEY your-gemini-api-key
+wrangler secret put AI_MODEL gemini-2.5-flash
+wrangler secret put AI_BASE_URL https://generativelanguage.googleapis.com
+```
+
+#### OpenAI 配置
+```bash
+wrangler secret put AI_PROVIDER openai
+wrangler secret put AI_API_KEY your-openai-api-key
+wrangler secret put AI_MODEL gpt-4
+wrangler secret put AI_BASE_URL https://api.openai.com
+```
+
+#### 支持的模型
+- **Gemini**: `gemini-2.5-flash`, `gemini-pro`, `gemini-pro-vision`
+- **OpenAI**: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
+
+#### 向后兼容
+应用仍支持原有的 `GEMINI_API_KEY` 和 `GEMINI_MODEL` 环境变量配置。
+
+### 6. 部署应用
 ```bash
 # 开发环境
 npm run dev
@@ -159,10 +197,11 @@ npm run deploy
 
 ### 核心功能
 - ✅ **多格式输入**: 支持文本、URL、图片三种输入方式
-- ✅ **智能分析**: 使用 Gemini AI 生成摘要和关键词
+- ✅ **智能分析**: 支持多种 AI 模型（Gemini、OpenAI）生成摘要和关键词
 - ✅ **数据持久化**: R2 存储原始文件，D1 存储结构化数据
 - ✅ **周报生成**: 自动生成每周洞察报告
 - ✅ **Web 界面**: 简洁美观的单页应用
+- ✅ **多模型支持**: 灵活配置不同的 AI 服务提供商
 
 ### 处理逻辑
 
@@ -179,7 +218,7 @@ npm run deploy
 
 #### 图片处理
 - 图片文件直接上传到 R2
-- 使用 Gemini 视觉模型分析图片内容
+- 使用 AI 视觉模型分析图片内容（支持 Gemini 和 OpenAI）
 - 生成图片描述和相关关键词
 
 ## 🔧 API 接口

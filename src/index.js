@@ -864,119 +864,158 @@ function extractTextFromHTML(html) {
 }
 
 /**
- * Call Gemini API (non-streaming for better reliability)
+ * Universal AI API caller supporting multiple providers
  */
-async function callGeminiAPI(prompt, env) {
-    const apiKey = env.GEMINI_API_KEY;
+async function callAIAPI(prompt, env, imageData = null) {
+    // 配置参数
+    const apiKey = env.AI_API_KEY || env.GEMINI_API_KEY;
+    const model = env.AI_MODEL || env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const baseUrl = env.AI_BASE_URL || 'https://generativelanguage.googleapis.com';
+    const provider = env.AI_PROVIDER || 'gemini'; // gemini, openai, etc.
+    
     if (!apiKey) {
-        throw new Error('GEMINI_API_KEY not found in environment variables');
+        throw new Error('AI_API_KEY or GEMINI_API_KEY not found in environment variables');
     }
-
-    // 使用环境变量指定的模型，如果没有则默认使用 gemini-2.5-flash
-    const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
     try {
-        const requestBody = {
-            contents: [{
-                parts: [{
-                    text: prompt
-                }]
-            }],
-            generationConfig: {
-                temperature: 0.7,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 2048
-            }
-        };
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        if (provider === 'openai') {
+            return await callOpenAIAPI(prompt, apiKey, model, baseUrl, imageData);
+        } else {
+            // Default to Gemini
+            return await callGeminiAPI(prompt, apiKey, model, baseUrl, imageData);
         }
-        
-        const responseData = await response.json();
-        
-        if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
-            const parts = responseData.candidates[0].content.parts;
-            if (parts && parts[0] && parts[0].text) {
-                return parts[0].text;
-            }
-        }
-        
-        return 'No response generated';
     } catch (error) {
-        console.error('Gemini API call failed:', error);
+        console.error('AI API call failed:', error);
         throw error;
     }
 }
 
 /**
- * Analyze content with LLM (Gemini)
+ * Call OpenAI-compatible API
+ */
+async function callOpenAIAPI(prompt, apiKey, model, baseUrl, imageData = null) {
+    const url = `${baseUrl}/v1/chat/completions`;
+    
+    const messages = [];
+    
+    if (imageData) {
+        // OpenAI vision format
+        messages.push({
+            role: "user",
+            content: [
+                { type: "text", text: prompt },
+                {
+                    type: "image_url",
+                    image_url: {
+                        url: `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(imageData)))}`
+                    }
+                }
+            ]
+        });
+    } else {
+        messages.push({
+            role: "user",
+            content: prompt
+        });
+    }
+    
+    const requestBody = {
+        model: model,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2048
+    };
+    
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+    
+    const responseData = await response.json();
+    
+    if (responseData.choices && responseData.choices[0] && responseData.choices[0].message) {
+        return responseData.choices[0].message.content;
+    }
+    
+    return 'No response generated';
+}
+
+/**
+ * Call Gemini API (non-streaming for better reliability)
+ */
+async function callGeminiAPI(prompt, apiKey, model, baseUrl, imageData = null) {
+    const url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    
+    const parts = [{ text: prompt }];
+    
+    if (imageData) {
+        parts.push({
+            inline_data: {
+                mime_type: "image/jpeg",
+                data: btoa(String.fromCharCode(...new Uint8Array(imageData)))
+            }
+        });
+    }
+    
+    const requestBody = {
+        contents: [{ parts: parts }],
+        generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048
+        }
+    };
+    
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    }
+    
+    const responseData = await response.json();
+    
+    if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+        const parts = responseData.candidates[0].content.parts;
+        if (parts && parts[0] && parts[0].text) {
+            return parts[0].text;
+        }
+    }
+    
+    return 'No response generated';
+}
+
+/**
+ * Analyze content with LLM (supports multiple AI providers)
  */
 async function analyzeWithLLM(content, type, env) {
     let generatedText = '';
 
     if (type === 'image') {
         // --- IMAGE ANALYSIS PATH ---
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(content)));
-
-        // [OPTIMIZED PROMPT FOR IMAGE]
         const prompt = `分析这张图片并提供以下信息：
 1. 简洁的图片描述（1-2句话）
 2. 1-5个相关关键词
 
 请以JSON格式回复：{"summary": "描述", "keywords": ["关键词1", "关键词2"]}`;
 
-        const requestBody = {
-            contents: [{
-                parts: [
-                    { text: prompt },
-                    {
-                        inline_data: {
-                            mime_type: "image/jpeg",
-                            data: base64Image
-                        }
-                    }
-                ]
-            }],
-            generationConfig: {
-                temperature: 0.7,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 1024
-            }
-        };
-
-        // 使用环境变量指定的模型，如果没有则默认使用 gemini-2.5-flash
-        const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Gemini API error: ${response.status} ${errorBody}`);
-        }
-
-        const responseData = await response.json();
-        if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
-            generatedText = responseData.candidates[0].content.parts[0].text;
-        } else {
-            generatedText = 'No response generated';
-        }
-
+        generatedText = await callAIAPI(prompt, env, content);
 
     } else {
         // --- TEXT/URL ANALYSIS PATH ---
@@ -995,7 +1034,7 @@ ${tables.length > 0 ? `表格数据：${tables.join('\n\n')}` : ''}
 
 请以JSON格式回复：{"summary": "摘要", "keywords": ["关键词"], "extractedTables": ["表格信息"]}`;
         
-        generatedText = await callGeminiAPI(prompt, env);
+        generatedText = await callAIAPI(prompt, env);
     }
 
     try {
@@ -1073,7 +1112,7 @@ async function generateWeeklyInsight(env) {
         // Generate weekly insight
         const prompt = `Based on the following weekly inputs, what is the single most valuable or surprising insight? Synthesize a new, original viewpoint that connects the themes. Be concise but profound.\n\nWeekly content summaries:\n${combinedContent}`;
         
-        const insightText = await callGeminiAPI(prompt, env);
+        const insightText = await callAIAPI(prompt, env);
         
         // Store weekly insight
         await env.D1_DB.prepare(
@@ -1199,7 +1238,7 @@ async function handleGenerateInsight(request, env) {
         // Generate insight
         const prompt = `基于以下最近的输入内容，生成一个有价值的洞察。请找出内容之间的联系、模式或趋势，提供一个原创的观点。保持简洁但深刻。\n\n最近的内容摘要：\n${combinedContent}`;
         
-        const insightText = await callGeminiAPI(prompt, env);
+        const insightText = await callAIAPI(prompt, env);
         
         // Store the insight with current date
         const now = new Date();
