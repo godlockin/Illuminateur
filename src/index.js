@@ -17,125 +17,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
             box-sizing: border-box;
         }
         
-        // Load recent inputs
-        async function loadRecentInputs() {
-            if (!accessToken) {
-                showStatus('需要身份验证', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/recent-inputs', {
-                    headers: {
-                        'Authorization': 'Bearer ' + accessToken
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('加载最近输入数据失败');
-                }
-                
-                const inputs = await response.json();
-                const inputsList = document.getElementById('recent-inputs-list');
-                
-                if (inputs.length === 0) {
-                    inputsList.innerHTML = '<p>暂无最近输入的数据。</p>';
-                } else {
-                    inputsList.innerHTML = inputs.map(input => 
-                        '<div class="insight-item" style="border-left: 4px solid #007bff;">' +
-                            '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">' +
-                                '<div>' +
-                                    '<div class="insight-date">' + new Date(input.created_at).toLocaleString('zh-CN') + '</div>' +
-                                    '<div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">类型: ' + (input.type === 'text' ? '文本' : input.type === 'url' ? 'URL' : '图片') + '</div>' +
-                                '</div>' +
-                                '<div>' +
-                                    '<button class="btn" onclick="editInput(\'' + input.id + '\')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-right: 0.3rem;">✏️ 编辑</button>' +
-                                    '<button class="btn" onclick="deleteInput(\'' + input.id + '\')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background-color: #dc3545; border-color: #dc3545;">🗑️ 删除</button>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div class="insight-text" style="font-size: 0.9rem;">' + 
-                                (input.type === 'text' ? input.original_content.substring(0, 100) + (input.original_content.length > 100 ? '...' : '') :
-                                 input.type === 'url' ? input.original_content :
-                                 '图片文件: ' + input.r2_object_key.split('/').pop()) +
-                            '</div>' +
-                            (input.analysis_result ? '<div style="margin-top: 0.5rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px; font-size: 0.85rem;"><strong>分析结果:</strong> ' + JSON.stringify(input.analysis_result).substring(0, 150) + '...</div>' : '') +
-                        '</div>'
-                    ).join('');
-                }
-            } catch (error) {
-                showStatus('加载最近输入数据时出错: ' + error.message, 'error');
-            }
-        }
-        
-        // Edit input
-        async function editInput(inputId) {
-            // For now, just show an alert - can be enhanced later
-            alert('编辑功能正在开发中，输入ID: ' + inputId);
-        }
-        
-        // Delete input
-        async function deleteInput(inputId) {
-            if (!confirm('确定要删除这条输入数据吗？此操作不可撤销。')) {
-                return;
-            }
-            
-            if (!accessToken) {
-                showStatus('需要身份验证', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/delete-input/' + inputId, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': 'Bearer ' + accessToken
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('删除输入数据失败');
-                }
-                
-                showStatus('输入数据已删除', 'success');
-                loadRecentInputs(); // Reload the list
-            } catch (error) {
-                showStatus('删除输入数据时出错: ' + error.message, 'error');
-            }
-        }
-        
-        // Generate insight manually
-        async function generateInsightManually() {
-            if (!accessToken) {
-                showStatus('需要身份验证', 'error');
-                return;
-            }
-            
-            if (!confirm('确定要手动生成洞察吗？这将基于您最近的输入数据生成新的洞察。')) {
-                return;
-            }
-            
-            try {
-                showStatus('正在生成洞察，请稍候...', 'info');
-                
-                const response = await fetch('/api/generate-insight', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + accessToken
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('生成洞察失败');
-                }
-                
-                const result = await response.json();
-                showStatus('洞察生成成功！', 'success');
-                loadInsights(); // Reload insights
-            } catch (error) {
-                showStatus('生成洞察时出错: ' + error.message, 'error');
-            }
-        }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -657,6 +538,125 @@ const HTML_CONTENT = `<!DOCTYPE html>
                 setLoading(false);
             }
         });
+        
+        // Load recent inputs
+        async function loadRecentInputs() {
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/recent-inputs', {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('加载最近输入数据失败');
+                }
+                
+                const inputs = await response.json();
+                const inputsList = document.getElementById('recent-inputs-list');
+                
+                if (inputs.length === 0) {
+                    inputsList.innerHTML = '<p>暂无最近输入的数据。</p>';
+                } else {
+                    inputsList.innerHTML = inputs.map(input => 
+                        '<div class="insight-item" style="border-left: 4px solid #007bff;">' +
+                            '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">' +
+                                '<div>' +
+                                    '<div class="insight-date">' + new Date(input.created_at).toLocaleString('zh-CN') + '</div>' +
+                                    '<div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">类型: ' + (input.type === 'text' ? '文本' : input.type === 'url' ? 'URL' : '图片') + '</div>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<button class="btn" onclick="editInput(' + input.id + ')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-right: 0.3rem;">✏️ 编辑</button>' +
+                                    '<button class="btn" onclick="deleteInput(' + input.id + ')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background-color: #dc3545; border-color: #dc3545;">🗑️ 删除</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="insight-text" style="font-size: 0.9rem;">' + 
+                                (input.type === 'text' ? input.original_content.substring(0, 100) + (input.original_content.length > 100 ? '...' : '') :
+                                 input.type === 'url' ? input.original_content :
+                                 '图片文件: ' + input.r2_object_key.split('/').pop()) +
+                            '</div>' +
+                            (input.analysis_result ? '<div style="margin-top: 0.5rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px; font-size: 0.85rem;"><strong>分析结果:</strong> ' + JSON.stringify(input.analysis_result).substring(0, 150) + '...</div>' : '') +
+                        '</div>'
+                    ).join('');
+                }
+            } catch (error) {
+                showStatus('加载最近输入数据时出错: ' + error.message, 'error');
+            }
+        }
+        
+        // Edit input
+        async function editInput(inputId) {
+            // For now, just show an alert - can be enhanced later
+            alert('编辑功能正在开发中，输入ID: ' + inputId);
+        }
+        
+        // Delete input
+        async function deleteInput(inputId) {
+            if (!confirm('确定要删除这条输入数据吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-input/' + inputId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('删除输入数据失败');
+                }
+                
+                showStatus('输入数据已删除', 'success');
+                loadRecentInputs(); // Reload the list
+            } catch (error) {
+                showStatus('删除输入数据时出错: ' + error.message, 'error');
+            }
+        }
+        
+        // Generate insight manually
+        async function generateInsightManually() {
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            if (!confirm('确定要手动生成洞察吗？这将基于您最近的输入数据生成新的洞察。')) {
+                return;
+            }
+            
+            try {
+                showStatus('正在生成洞察，请稍候...', 'info');
+                
+                const response = await fetch('/api/generate-insight', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('生成洞察失败');
+                }
+                
+                const result = await response.json();
+                showStatus('洞察生成成功！', 'success');
+                loadInsights(); // Reload insights
+            } catch (error) {
+                showStatus('生成洞察时出错: ' + error.message, 'error');
+            }
+        }
     </script>
 </body>
 </html>`;
