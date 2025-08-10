@@ -11,7 +11,7 @@ ENVIRONMENT = "production"
 [[d1_databases]]
 binding = "D1_DB"
 database_name = "illuminateur-db"
-database_id = "your-database-id-here"  # 需要替换为实际的数据库 ID
+database_id = "4833b12c-d27b-48d0-afe2-193731b568d4"  # 需要替换为实际的数据库 ID
 
 # R2 存储绑定
 [[r2_buckets]]
