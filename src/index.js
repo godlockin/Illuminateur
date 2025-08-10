@@ -17,6 +17,125 @@ const HTML_CONTENT = `<!DOCTYPE html>
             box-sizing: border-box;
         }
         
+        // Load recent inputs
+        async function loadRecentInputs() {
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/recent-inputs', {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('加载最近输入数据失败');
+                }
+                
+                const inputs = await response.json();
+                const inputsList = document.getElementById('recent-inputs-list');
+                
+                if (inputs.length === 0) {
+                    inputsList.innerHTML = '<p>暂无最近输入的数据。</p>';
+                } else {
+                    inputsList.innerHTML = inputs.map(input => 
+                        '<div class="insight-item" style="border-left: 4px solid #007bff;">' +
+                            '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">' +
+                                '<div>' +
+                                    '<div class="insight-date">' + new Date(input.created_at).toLocaleString('zh-CN') + '</div>' +
+                                    '<div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">类型: ' + (input.type === 'text' ? '文本' : input.type === 'url' ? 'URL' : '图片') + '</div>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<button class="btn" onclick="editInput(\'' + input.id + '\')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-right: 0.3rem;">✏️ 编辑</button>' +
+                                    '<button class="btn" onclick="deleteInput(\'' + input.id + '\')" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background-color: #dc3545; border-color: #dc3545;">🗑️ 删除</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="insight-text" style="font-size: 0.9rem;">' + 
+                                (input.type === 'text' ? input.original_content.substring(0, 100) + (input.original_content.length > 100 ? '...' : '') :
+                                 input.type === 'url' ? input.original_content :
+                                 '图片文件: ' + input.r2_object_key.split('/').pop()) +
+                            '</div>' +
+                            (input.analysis_result ? '<div style="margin-top: 0.5rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px; font-size: 0.85rem;"><strong>分析结果:</strong> ' + JSON.stringify(input.analysis_result).substring(0, 150) + '...</div>' : '') +
+                        '</div>'
+                    ).join('');
+                }
+            } catch (error) {
+                showStatus('加载最近输入数据时出错: ' + error.message, 'error');
+            }
+        }
+        
+        // Edit input
+        async function editInput(inputId) {
+            // For now, just show an alert - can be enhanced later
+            alert('编辑功能正在开发中，输入ID: ' + inputId);
+        }
+        
+        // Delete input
+        async function deleteInput(inputId) {
+            if (!confirm('确定要删除这条输入数据吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-input/' + inputId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('删除输入数据失败');
+                }
+                
+                showStatus('输入数据已删除', 'success');
+                loadRecentInputs(); // Reload the list
+            } catch (error) {
+                showStatus('删除输入数据时出错: ' + error.message, 'error');
+            }
+        }
+        
+        // Generate insight manually
+        async function generateInsightManually() {
+            if (!accessToken) {
+                showStatus('需要身份验证', 'error');
+                return;
+            }
+            
+            if (!confirm('确定要手动生成洞察吗？这将基于您最近的输入数据生成新的洞察。')) {
+                return;
+            }
+            
+            try {
+                showStatus('正在生成洞察，请稍候...', 'info');
+                
+                const response = await fetch('/api/generate-insight', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('生成洞察失败');
+                }
+                
+                const result = await response.json();
+                showStatus('洞察生成成功！', 'success');
+                loadInsights(); // Reload insights
+            } catch (error) {
+                showStatus('生成洞察时出错: ' + error.message, 'error');
+            }
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -261,7 +380,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <div id="main-app" class="hidden">
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('capture')">捕获</button>
-                <button class="tab" onclick="switchTab('insights')">每周洞察</button>
+                <button class="tab" onclick="switchTab('insights')">洞察</button>
             </div>
             
             <div class="tab-content">
@@ -302,16 +421,30 @@ const HTML_CONTENT = `<!DOCTYPE html>
                     </form>
                     
                     <div id="status" class="status"></div>
+                    
+                    <!-- Recent Inputs Section -->
+                    <div style="margin-top: 3rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3>最近输入的数据</h3>
+                            <button class="btn" onclick="loadRecentInputs()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">🔄 刷新</button>
+                        </div>
+                        <div id="recent-inputs-list">
+                            <p>点击刷新按钮加载最近的输入数据...</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Insights Tab -->
                 <div id="insights-tab" class="tab-pane">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                        <h2>每周洞察</h2>
-                        <button class="btn" onclick="loadInsights()">🔄 刷新</button>
+                        <h2>洞察</h2>
+                        <div>
+                            <button class="btn" onclick="generateInsightManually()" style="margin-right: 0.5rem;">✨ 手动生成洞察</button>
+                            <button class="btn" onclick="loadInsights()">🔄 刷新</button>
+                        </div>
                     </div>
                     <div id="insights-list" class="insights-list">
-                        <p>点击刷新按钮加载您的每周洞察...</p>
+                        <p>点击刷新按钮加载您的洞察...</p>
                     </div>
                 </div>
             </div>
@@ -592,6 +725,19 @@ async function handleAPI(request, env, url) {
         
         if (url.pathname === '/api/insights' && request.method === 'GET') {
             return await handleGetInsights(request, env);
+        }
+        
+        if (url.pathname === '/api/recent-inputs' && request.method === 'GET') {
+            return await handleGetRecentInputs(request, env);
+        }
+        
+        if (url.pathname.startsWith('/api/delete-input/') && request.method === 'DELETE') {
+            const inputId = url.pathname.split('/').pop();
+            return await handleDeleteInput(inputId, env);
+        }
+        
+        if (url.pathname === '/api/generate-insight' && request.method === 'POST') {
+            return await handleGenerateInsight(request, env);
         }
         
         return new Response('Not Found', { status: 404 });
@@ -938,5 +1084,139 @@ async function generateWeeklyInsight(env) {
         
     } catch (error) {
         console.error('Error generating weekly insight:', error);
+    }
+}
+
+/**
+ * Get recent inputs
+ */
+async function handleGetRecentInputs(request, env) {
+    try {
+        const inputs = await env.D1_DB.prepare(`
+            SELECT i.id, i.type, i.r2_object_key, i.original_content, i.created_at,
+                   lo.summary, lo.keywords, lo.extracted_tables
+            FROM inputs i
+            LEFT JOIN llm_outputs lo ON i.id = lo.input_id
+            ORDER BY i.created_at DESC
+            LIMIT 20
+        `).all();
+        
+        const results = inputs.results.map(input => ({
+            id: input.id,
+            type: input.type,
+            r2_object_key: input.r2_object_key,
+            original_content: input.original_content,
+            created_at: input.created_at,
+            analysis_result: {
+                summary: input.summary,
+                keywords: input.keywords ? JSON.parse(input.keywords) : [],
+                extracted_tables: input.extracted_tables ? JSON.parse(input.extracted_tables) : []
+            }
+        }));
+        
+        return new Response(JSON.stringify(results), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error('Error getting recent inputs:', error);
+        return new Response('Internal Server Error: ' + error.message, { status: 500 });
+    }
+}
+
+/**
+ * Delete input
+ */
+async function handleDeleteInput(inputId, env) {
+    try {
+        // Get the input record to find the R2 object key
+        const input = await env.D1_DB.prepare(
+            'SELECT r2_object_key FROM inputs WHERE id = ?'
+        ).bind(inputId).first();
+        
+        if (!input) {
+            return new Response('Input not found', { status: 404 });
+        }
+        
+        // Delete from R2
+        try {
+            await env.R2_BUCKET.delete(input.r2_object_key);
+        } catch (r2Error) {
+            console.warn('Failed to delete from R2:', r2Error);
+            // Continue with database deletion even if R2 deletion fails
+        }
+        
+        // Delete related llm_outputs first (manual cascade since D1 doesn't support CASCADE DELETE)
+        await env.D1_DB.prepare(
+            'DELETE FROM llm_outputs WHERE input_id = ?'
+        ).bind(inputId).run();
+        
+        // Then delete the input record
+        await env.D1_DB.prepare(
+            'DELETE FROM inputs WHERE id = ?'
+        ).bind(inputId).run();
+        
+        return new Response(JSON.stringify({ success: true }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error('Error deleting input:', error);
+        return new Response('Internal Server Error: ' + error.message, { status: 500 });
+    }
+}
+
+/**
+ * Generate insight manually
+ */
+async function handleGenerateInsight(request, env) {
+    try {
+        // Get recent summaries (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const summaries = await env.D1_DB.prepare(`
+            SELECT lo.summary, lo.keywords, i.created_at
+            FROM llm_outputs lo 
+            JOIN inputs i ON lo.input_id = i.id 
+            WHERE i.created_at >= ?
+            ORDER BY i.created_at DESC
+            LIMIT 50
+        `).bind(thirtyDaysAgo.toISOString()).all();
+        
+        if (summaries.results.length === 0) {
+            return new Response(JSON.stringify({ 
+                error: '没有足够的数据来生成洞察，请先添加一些内容。' 
+            }), { 
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        // Combine all summaries
+        const combinedContent = summaries.results.map(s => 
+            `${s.summary} (关键词: ${s.keywords})`
+        ).join('\n\n');
+        
+        // Generate insight
+        const prompt = `基于以下最近的输入内容，生成一个有价值的洞察。请找出内容之间的联系、模式或趋势，提供一个原创的观点。保持简洁但深刻。\n\n最近的内容摘要：\n${combinedContent}`;
+        
+        const insightText = await callGeminiAPI(prompt, env);
+        
+        // Store the insight with current date
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        
+        await env.D1_DB.prepare(
+            'INSERT INTO weekly_insights (insight_text, week_start_date) VALUES (?, ?)'
+        ).bind(insightText, dateStr).run();
+        
+        return new Response(JSON.stringify({ 
+            success: true, 
+            insight: insightText 
+        }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error('Error generating manual insight:', error);
+        return new Response('Internal Server Error: ' + error.message, { status: 500 });
     }
 }
